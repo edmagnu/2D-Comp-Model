@@ -1,0 +1,156 @@
+\documentclass[aps,pra,preprint,groupedaddress]{revtex4-1}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+
+\title{Testing the 2D Classical Model of Phase-Dependent Ionization}
+
+\author{Eric Magnuson}
+\email[]{edm5gb@virginia.edu}
+\affiliation{University of Virginia, Department of Physics}
+\date{\today}
+
+\begin{abstract}
+Prior works have discussed the one dimensional model for Rydberg-MW interactions in several works. It is useful to turn the mathematical description into a computational model. Prior work used a 1D single orbit model. In this work, I will test and apply a 2D Model.
+\end{abstract}
+
+\section{\label{sec:State} Explicit Statement of Model}
+
+\subsection{\label{sec:AU} Atomic Units}
+
+Calculations are simplified by using atomic units. Useful atomic units, found in Rydberg Atoms by Tom Gallagher \emph{(CITE)}
+
+\begin{align*}
+\text{Energy} & & E_{AU} & & & 4.35974417 \cdot 10^{-18} ~ \text{J} \\
+\text{Time} & & t_{AU} & & & 2.418884326505 \cdot 10^{-17} ~ \text{s} \\
+\text{Field} & & f_{AU} & & & 5.14220652 \cdot 10^{11} ~ \text{V/m}
+\end{align*}
+
+After calculations, it's useful to transform back to lab units.
+
+\begin{align*}
+\text{1 GHz} & = 1.51983 \cdot 10^{-7} ~ E_{AU} \\
+\text{1 ns} & = 4.13414 \cdot 10^7 ~ t_{AU} \\
+\text{1 mV/cm} & = 1.94469 \cdot 10^{-13} ~ f_{AU}
+\end{align*}
+
+\subsection{\label{sec:IC} Initial Conditions}
+
+Experimental parameters provide the initial energy $E_0$ and angular momentum $L_0$. This is further constrained by the choice to start at the periapsis of a Keplerean trajectory.
+
+The system of equations for the initial conditions are
+\begin{align*}
+E_0 & = \frac{1}{2} v_0^2 - \frac{1}{r_0} & L_0 & = r_0 \cdot v_0
+\end{align*}
+which has two solutions representing the peri- and apoapsis. Excitation from the 3D state suggests periapsis initial conditions.
+\begin{align*}
+r_0 & = \frac{-1 + \sqrt{1 + 2 E_0 L_0^2}}{2 E_0} & v_0 & = \frac{1 + \sqrt{1 + 2 E_0 L_0^2}}{L_0}
+\end{align*}
+These initial conditions need to be mapped onto the angle of the Laplace-Runge-Lenz (LRL) vector in the x-z plane, and the selection of the angular momentum in the $\pm \hat{y}$ direction. This is implemented by starting with $\theta_{LRL} = 0$ and $\hat{L} = \pm \hat{y}$ and then rotating $\vec{r}_0, \vec{v}_0$.
+\begin{align*}
+& & x(0) & = \sin{\theta_{LRL}} \cdot r_0 & z(0) & = -\cos{\theta_{LRL}} \cdot r_0 \\
+\hat{L} & = \pm \hat{y} & \dot{x}(0) & = \pm \cos{\theta_{LRL}} \cdot v_0 & \dot{z}(0) & = \pm \sin{\theta_{LRL}} \cdot v_0
+\end{align*}
+
+\subsection{\label{sec:EoM} Equations of Motion}
+
+The equations of motion must include the Coulomb potential, applied pulsed field, and microwave field. The vector statement of the equations of motion, in atomic units, is
+
+\begin{align*}
+\ddot{\vec{r}} & = F_{coul}(\vec{r}) - \vec{E}_{P}(t) - \vec{E}_{MW}(t) \\
+ & = -\frac{1}{r^2} \cdot \hat{r} - \Phi_P(t) \cdot E_{p} \cdot \hat{z} - \Phi_{MW}(t) \cdot E_{mw} \sin{(\omega t + \phi_0)} \cdot \hat{z} 
+\end{align*}
+where the $\Phi_P$ and $\Phi_{MW}$ are envelope functions describing the square wave turning off the pulsed field and the exponential ringdown of the MW field.
+
+\begin{align*}
+\Phi_P(t \leq t_{off}) & = 1 & \Phi_{MW}(t \leq t_{off}) & = 1 \\
+\Phi_P(t > t_{off}) & = 0 & \Phi_{MW}(t > t_{off}) & = e^{-(t-t_{off})/\tau_{MW}}
+\end{align*}
+
+For computation, these vector equations need to be expressed in terms of Cartesian coordinates \{x,y,z\}. Including the initial conditions from Sec.~\ref{sec:IC}, the system of ODEs is:
+\begin{align*}
+x(0) & = \sin{\theta_{LRL}} \cdot r_0 & z(0) & = -\cos{\theta_{LRL}} \cdot r_0 \\
+\dot{x}(0) & = \pm \cos{\theta_{LRL}} \cdot v_0 & \dot{z}(0) & = \pm \sin{\theta_{LRL}} \cdot v_0 \quad \quad \hat{L} = \pm \hat{y} \\
+\ddot{x} & = -\frac{x}{(x^2 + z^2)^{3/2}} & \ddot{z} & = -\frac{z}{(x^2 + z^2)^{3/2}} - \Phi_P(t) \cdot E_P - \Phi_{MW}(t) \cdot E_{MW} \cdot \sin{(\omega t + \phi_0)}
+\end{align*}
+
+\section{\label{sec:Tests} Tests}
+
+\subsection{\label{sec:ThL} $\Theta_{LRL}$ and $\hat{L}$}
+
+Fig.~\ref{fig:ThL} shows changing the initial conditions for $\hat{L}$ and $\theta_{LRL}$ produces the desired orbits.
+
+\begin{figure}
+	\includegraphics[width=0.8\textwidth]{OrbitAlignment}
+	\caption{Orbits at 4 settings of $\Theta_{LRL}$ and $\hat{L}$}
+	\label{fig:ThL}
+\end{figure}
+
+\subsection{\label{sec:EvP} $\Delta$ E vs $\phi_0$}
+
+To measure $\Delta E(\phi_0)$, I ran the model in zero static field for 30 MW cycles, and took an average of the orbital energy over cycles 10 through 20. This showed a $<1 ~ GHz$ disagreement with running the simulation for 100 ns and averaging over the final 10 cycles.
+\begin{equation*}
+E_f = \frac{1}{10T_{MW}} \int_{10T_{MW}}^{20T_{MW}} \left(\frac{v(t)^2}{2} - \frac{1}{r(t)}\right) \cdot dt
+\end{equation*}
+
+Carrat, 2015 shows the 1-D analytical theory predicts a maximum energy transfer of
+\begin{equation*}
+\Delta E_{\pi/6} = \frac{3}{2} \frac{E_{MW}}{\omega^{2/3}}
+\end{equation*}
+I've tested this on three microwave field values of $E_{MW} = 2, ~ 4, ~ \text{and} ~ 6 ~ V/cm$ at initial energies of $E_0 = 0, ~ 100, ~ \text{and} ~ 200 ~ GHz$. The test at the ionization limit agrees well, while those further from the limit are less accurate.
+
+Beyond maximum energy transfer, the model shows very good agreement to a sinusoidal dependence.
+\begin{align*}
+\Delta E(\phi_0) & = A \cdot \cos{(\phi_0 - \Delta \phi)} & A & = \frac{3}{2} \frac{E_{MW}}{\omega^{2/3}} & \Delta \phi & = \frac{\pi}{6}
+\end{align*}
+where $\phi_0$ refers to the excitation phase of the MW field
+\begin{equation*}
+\vec{E}_{MW}(t) = E_{MW} \sin{(\omega t + \phi_0)} \cdot \hat{z}
+\end{equation*}
+For $E_0 = 0 ~ GHz$, Table~\ref{tab:EvP} shows the parameters predicted by theory and the parameters fit to the computational model, showing good agreement. For the same conditions, Fig.~\ref{fig:EvP} shows the computed final energies in color traced with the theory predictions in black.
+
+\begin{table}
+	\caption{\label{tab:EvP} Amplitudes and phases predicted by theory ($A_{pred}, \Delta \phi_{pred}$) and produced by our computational model ($A_{comp}, \Delta\phi_{comp}$) for three MW field strengths. Each calculation is at an initial energy $E_0 = 0 ~ GHz$ and microwave frequency $f_{MW} = 15.9 ~ GHz$.}
+	\begin{ruledtabular}
+	\begin{tabular}{c|cc|cc}
+	$E_{MW}$ (V/cm) & $A_{pred}$ (GHz) & $A_{comp}$ (GHz) & $\Delta \phi_{pred}$ (rad.) & $\Delta \phi_{comp}$ (rad.) \\ \hline
+	2.0 & 21.317 & 21.172 & 0.524 & 0.523 \\
+	4.0 & 42.633 & 42.349 & 0.524 & 0.523 \\
+	6.0 & 63.949 & 63.543 & 0.524 & 0.523
+	\end{tabular}
+	\end{ruledtabular}
+\end{table}
+
+\begin{figure}
+	\includegraphics[width=0.8\textwidth]{EvP}
+	\caption{\label{fig:EvP} Total energy gained by the electron $(\Delta E)$ from the MW field as it leaves the core at a particular MW phase $(\phi_0)$. The results of the computational model are points in color, and the theory prediction of $\Delta E = 3/2 \cdot E_{MW}/\omega^{3/2} \cdot \cos{(\phi_0 + \Delta\phi)}$ is traced as a solid black line, showing good agreement.}
+\end{figure}
+
+The case for a slingshotting electron is not quite double that for an electron leaving the core. If the closest approach occurs at $\phi_0$, then the energy gain arriving can be treated as energy lost by an electron leaving at $\phi_0$ in an electric field evolving backwards in time.
+\begin{align*}
+E_{MW}(-t,\phi_0) & = A \sin{(-\omega t + \phi_0)} \\
+ & = -A\sin({\omega t - \phi_0)} \\
+ & = -E_{MW}(t, -\phi_0)
+\end{align*}
+\begin{align*}
+\Delta E_{slingshot} & = \Delta E(\phi_0) - -\Delta E(-\phi_0) \\
+ & = \Delta E(\phi_0) + \Delta E(-\phi_0) \\
+ & = A \cos{(\phi_0 - \Delta \phi)} + A \cos{(-\phi_0 - \Delta \phi)} \\
+ & = 2 A \cos{\phi_0} \cos{\Delta \phi}
+\end{align*}
+For $\Delta \phi = \pi/6$, this suggests a maximum "slingshot" exchange of
+\begin{equation*}
+\Delta E_{slingshot,max} = \sqrt{3} A = \sqrt{3} \, \frac{3}{2} \frac{E_{MW}}{\omega^{2/3}}
+\end{equation*}
+
+\section{\label{sec:static} Uphill and Downhill Electrons in Static Fields}
+
+\subsection{\label{sec:DHstatic} Downhill Electrons in Static Fields}
+
+\begin{figure}
+\includegraphics[width=\textwidth]{DIL}
+\caption{\label{fig:DIL} The dynamics of "downhill" electrons are dominated by the depressed ionization limit in the pulsed field. \textbf{(a)} Total potential seen by an electron in a static field. "Downhill" electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL as a function of applied Field.}
+\end{figure}
+
+\end{document}
