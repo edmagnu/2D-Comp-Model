@@ -1,0 +1,82 @@
+Handmade notes for downhill electrons
+
+3 cases:
+	(a) 0.0 Electron flies away, E(20ns) > 0
+	(b) 1.0 Electron is in a long orbit, E(20ns) < 0 and returns to core after 20ns
+	(c) 0.5 Electron is in quick orbits, E(20ns) < 0 and returns to core before 20ns
+
+For fpulse = 0 mV/cm, DIL = 0 GHz
+	(a)    1 GHz < E0
+	(b) - 12 GHz < E0 < 0 GHz
+	(c)            E0 < -13 GHz
+	
+For fpulse = 7 mV/cm, DIL = -15 GHz
+	(a) - 10 GHz < E0
+	(b) - 18 GHz < E0 < -11 GHz
+	(c)            E0 < -19 GHz
+
+For fpulse = 14 mV/cm, DIL = -21 GHz
+	(a) - 18 GHz < E0
+	(b) - 22 GHz < E0 < -19 GHz
+	(c)            E0 < -23 GHz
+
+For fpulse = 28 mV/cm, DIL = -30 GHz
+	(a) - 29 GHz < E0
+	(b) - 31 GHz < E0 < -30 GHz
+	(c)            E0 < -32 GHz
+
+For fpulse = 56 mV/cm, DIL = -43 GHz
+	(a) - 43 GHz < E0
+	(b)  --- GHz < E0 < --- GHz
+	(c)            E0 < -44 GHz
+	
+For fpulse = 112 mV/cm, DIL = -61 GHz
+	(a) - 61 GHz < E0
+	(b)  --- GHz < E0 < --- GHz
+	(c)            E0 < -62 GHz
+
+Notes for uphill electrons
+
+3 cases:
+	(a) 0.0 Electron flies away, E(20ns) > 0
+	(b) 1.0 Electron is in a long orbit, E(20ns) < 0 and returns to core after 20ns
+	(c) 0.5 Electron is in quick orbits, E(20ns) < 0 and returns to core before 20ns
+	(d) 0.0 Electron starts returning and is left at high energy, E(20ns) > 0
+	(e) 0.0 Electrons get peeled off by the field through increases in angular momentum.
+			Shown by orbital behavior that eventually "breaks" to a free electron (before 20ns).
+			E(20ns) > 0, r(min of 2nd approach) > 10,000 a.u., t(second approach) < 20ns
+
+For fpulse = 0 mV/cm, DIL = 0 GHz
+	(a)    1 GHz < E0
+	(b) - 12 GHz < E0 <   0 GHz
+	(c)            E0 < -13 GHz
+
+For fpulse = 7 mV/cm, DIL = -15 GHz
+	(a)   16 GHz < E0
+	(b) -  6 GHz < E0 <  15 GHz
+	(c)            E0 < - 7 GHz
+
+For fpulse = 14 mV/cm, DIL = -21 GHz
+	(a)   37 GHz < E0
+	(b)    1 GHz < E0 <  36 GHz
+	(c)            E0 <   0 GHz
+
+For fpulse = 28 mV/cm, DIL = -30 GHz
+	(a)   98 GHz < E0
+	(b)   41 GHz < E0 <  97 GHz
+	(d)   19 GHz < E0 <  40 GHz
+	(c)            E0 <  18 GHz
+
+For fpulse = 56 mV/cm, DIL = -43 GHz
+	(a)  308 GHz < E0
+	(b)  229 GHz < E0 < 307 GHz
+	(d)   75 GHz < E0 < 228 GHz
+	(e)   55 GHz < E0 <  70 GHz
+	(c)            E0 <  50 GHz (16 ns)
+
+For fpulse = 112 mV/cm, DIL = -61 GHz
+	(a) 1100 GHz < E0
+	(b)  --- GHz < E0 < --- GHz
+	(d)  280 GHz < E0 < 1000 GHz
+	(e)   7 GHz < E0 <  270 GHz
+	(c)            E0 <   75 GHz (10ns)
