@@ -88,7 +88,7 @@ def enfinal_plot(data):
     return None
 
 
-def bound_plot(data, key):
+def bound_plot(data, key="bound"):
     """Given simulation results, plot whether the electron is bound against
     launch phase.
     Returns None."""
@@ -109,7 +109,7 @@ def bound_plot(data, key):
                    label="missing")
         ax[i].set_ylabel("bound")
         ax[i].grid(True)
-        ax[i].legend(loc=3)
+        ax[i].legend()
     # label and tick axes
     ax[1].set_xlabel(r"MW Launch Phase $\phi_0$ (rad.)")
     ax[1].set_xticks(np.array([1/6, 4/6, 7/6, 10/6])*np.pi)
@@ -119,6 +119,11 @@ def bound_plot(data, key):
 
 
 def bound_patch():
+    """Reads raw data from read_tidy() output, and uses enfinal to add "bound"
+    to the DataFrame. To replace NaN, "bound_p" averages nearest neighbors in
+    "bound". Writes new data to "data_bound.txt"
+    Returns data DataFrame
+    """
     data = pd.read_csv("data_raw.txt", index_col=0)
     data.reset_index(drop=True, inplace=True)
     mask_nan = np.isnan(data["enfinal"])
@@ -162,9 +167,47 @@ def bound_patch():
     return data
 
 
-# data = bound_patch()
-# bound_plot(data, "bound")
-# bound_plot(data, "bound_p")
-# data = read_tidy()
-# data = bound_patch()
+def conv_model(x, x0):
+    """Model of AM laser envelope to convolve over data["bound"].
+    Returns np.array of 0.5 + np.cos(x + x0)"""
+    return 0.5 + np.cos(x - x0)
+
+
+def bound_test_data(phi0, dphi):
+    """Generate mock data to test convolution on.
+    Returns DataFrame["th_LRL", "phi", "bound", "bound_p"]"""
+    data = pd.DataFrame()  # initialize
+    # build th_LRL = 0 data
+    data["phi"] = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
+    data["th_LRL"] = pd.Series([0]*len(data), dtype=float)
+    data["bound"] = pd.Series([0]*len(data), dtype=float)
+    data["bound_p"] = data["bound"]
+    data_pi = data.replace({"th_LRL": {0: np.pi}})
+    # add a bump between phi-dphi and phi+dphi
+    mask = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
+    if phi0-dphi < 0:
+        mask = np.logical_or(mask, (data["phi"] > ((phi0-dphi) % (2*np.pi))))
+    if phi0+dphi > 2*np.pi:
+        mask = np.logical_or(mask, (data["phi"] < ((phi0-dphi) % (2*np.pi))))
+    data.loc[mask, "bound"] = 1.0
+    data.loc[mask, "bound_p"] = 1.0
+    # build th_LRL = pi data
+    # add a bump to (phi+pi)%np.pi
+    phi0 = (phi0+np.pi) % (2*np.pi)
+    mask = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
+    if phi0-dphi < 0:
+        mask = np.logical_or(mask, (data["phi"] > ((phi0-dphi) % (2*np.pi))))
+    if phi0+dphi > 2*np.pi:
+        mask = np.logical_or(mask, (data["phi"] < ((phi0-dphi) % (2*np.pi))))
+    data_pi.loc[mask, "bound"] = 1.0
+    data_pi.loc[mask, "bound_p"] = 1.0
+    data = data.append(data_pi)
+    data.reset_index(drop=True, inplace=True)
+    return data
+
+
 data = pd.read_csv("data_bound.txt", index_col=0)
+# mask = ((data["E0"] == 0) & (data["Ep"] == 0))
+# bound_plot(data[mask], "bound")
+# bound_plot(data[mask], "bound_p")
+# data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
