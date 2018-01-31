@@ -61,25 +61,27 @@ def enfinal_plot(data):
     return None
 
 
-def main():
+def read_tidy():
     """Read in results data file with metadata"""
-    au = atomic_units()
     # specify file
     directory = ("C:\\Users\\edmag\\Documents\\Work\\" +
                  "2D-Comp-Model\\computation\\results")
     flist = os.listdir(directory)
-    fname = directory + "\\" + flist[0]
-    print(fname)
-    # load metadata and data
-    meta = read_metadata(fname)
-    data = pd.read_csv(fname, sep="\t", comment="#", index_col=False)
-    # add in metadata
-    data["Filename"] = pd.Series([fname]*len(data["phi"]), dtype=str)
-    data["E0"] = pd.Series([meta["E0"]]*len(data["phi"]), dtype=float)
-    data["Ep"] = pd.Series([meta["Ep"]]*len(data["phi"]), dtype=float)
-    data = data[["Filename", "E0", "Ep", "dL", "th_LRL", "phi", "enfinal"]]
-    # enfinal_plot(data)
-    return meta, data
+    data_m = pd.DataFrame()  # initialize DataFrame
+    for file in flist:
+        fname = directory + "\\" + flist[0]  # build file
+        # load metadata and data
+        meta = read_metadata(fname)
+        data = pd.read_csv(fname, sep="\t", comment="#", index_col=False)
+        # add in metadata
+        data["Filename"] = pd.Series([fname]*len(data["phi"]), dtype=str)
+        data["E0"] = pd.Series([meta["E0"]]*len(data["phi"]), dtype=float)
+        data["Ep"] = pd.Series([meta["Ep"]]*len(data["phi"]), dtype=float)
+        # organize data
+        data = data[["Filename", "E0", "Ep", "dL", "th_LRL", "phi", "enfinal"]]
+        # enfinal_plot(data)
+        data_m = data_m.append(data)  # append to master DataFrame
+    return data_m
 
 
-meta, data = main()
+data = read_tidy()
