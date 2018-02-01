@@ -177,37 +177,55 @@ def bound_test_data(phi0, dphi):
     """Generate mock data to test convolution on.
     Returns DataFrame["th_LRL", "phi", "bound", "bound_p"]"""
     data = pd.DataFrame()  # initialize
-    # build th_LRL = 0 data
-    data["phi"] = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
-    data["th_LRL"] = pd.Series([0]*len(data), dtype=float)
-    data["bound"] = pd.Series([0]*len(data), dtype=float)
-    data["bound_p"] = data["bound"]
-    data_pi = data.replace({"th_LRL": {0: np.pi}})
-    # add a bump between phi-dphi and phi+dphi
-    mask = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
+    dft = pd.DataFrame()
+    # E0=0, Ep=0, dL=-1, th_LRL=0
+    dft["phi"] = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
+    dft["th_LRL"] = pd.Series([0]*len(dft), dtype=float)
+    dft["dL"] = pd.Series([-1]*len(dft), dtype=float)
+    dft["Ep"] = pd.Series([0]*len(dft), dtype=float)
+    dft["E0"] = pd.Series([0]*len(dft), dtype=float)
+    dft["bound"] = pd.Series([0]*len(dft), dtype=float)
+    data = data.append(dft)
+    # E0=0, Ep=0, dL=-1, th_LRL=pi
+    dft.replace({"th_LRL": {0: np.pi}}, inplace=True)
+    data = data.append(dft)
+    # E0=0, Ep=0, dL=1, th_LRL = 0
+    dft.replace({"th_LRL": {np.pi: 0}}, inplace=True)
+    dft.replace({"dL": {-1: 1}}, inplace=True)
+    data = data.append(dft)
+    # E0=0, Ep=0, dL=1, th_LRL = np.pi
+    dft.replace({"th_LRL": {0: np.pi}}, inplace=True)
+    data = data.append(dft)
+    # add bump to th_LRL = 0 at phi = phi0
+    mask_th = (data["th_LRL"] == 0)
+    mask_phi = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
     if phi0-dphi < 0:
-        mask = np.logical_or(mask, (data["phi"] > ((phi0-dphi) % (2*np.pi))))
+        mask_phi = np.logical_or(mask_phi,
+                                 (data["phi"] > ((phi0-dphi) % (2*np.pi))))
     if phi0+dphi > 2*np.pi:
-        mask = np.logical_or(mask, (data["phi"] < ((phi0-dphi) % (2*np.pi))))
+        mask_phi = np.logical_or(mask_phi,
+                                 (data["phi"] < ((phi0-dphi) % (2*np.pi))))
+    mask = mask_th & mask_phi
     data.loc[mask, "bound"] = 1.0
     data.loc[mask, "bound_p"] = 1.0
-    # build th_LRL = pi data
-    # add a bump to (phi+pi)%np.pi
-    phi0 = (phi0+np.pi) % (2*np.pi)
-    mask = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
+    # add bump to th_LRL=pi at phi = (phi0+pi) % 2pi
+    phi0 = ((phi0 + np.pi) % (2*np.pi))
+    mask_th = (data["th_LRL"] == np.pi)
+    mask_phi = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
     if phi0-dphi < 0:
-        mask = np.logical_or(mask, (data["phi"] > ((phi0-dphi) % (2*np.pi))))
+        mask_phi = np.logical_or(mask_phi,
+                                 (data["phi"] > ((phi0-dphi) % (2*np.pi))))
     if phi0+dphi > 2*np.pi:
-        mask = np.logical_or(mask, (data["phi"] < ((phi0-dphi) % (2*np.pi))))
-    data_pi.loc[mask, "bound"] = 1.0
-    data_pi.loc[mask, "bound_p"] = 1.0
-    data = data.append(data_pi)
-    data.reset_index(drop=True, inplace=True)
+        mask_phi = np.logical_or(mask_phi,
+                                 (data["phi"] < ((phi0-dphi) % (2*np.pi))))
+    mask = mask_th & mask_phi
+    data.loc[mask, "bound"] = 1.0
+    data.loc[mask, "bound_p"] = 1.0
     return data
 
 
-data = pd.read_csv("data_bound.txt", index_col=0)
+# data = pd.read_csv("data_bound.txt", index_col=0)
 # mask = ((data["E0"] == 0) & (data["Ep"] == 0))
 # bound_plot(data[mask], "bound")
 # bound_plot(data[mask], "bound_p")
-# data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
+data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
