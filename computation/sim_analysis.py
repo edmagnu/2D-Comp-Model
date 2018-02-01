@@ -170,15 +170,22 @@ def bound_patch():
 def bound_test_data(phi0, dphi):
     """Generate mock data to test convolution on.
     Returns DataFrame["th_LRL", "phi", "bound", "bound_p"]"""
+    au = atomic_units()
     data = pd.DataFrame()  # initialize
     dft = pd.DataFrame()
+    # Start with E0=0, Ep=0, dL=-1, th_LRL=0
+    phi_series = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
+    l = len(phi_series)
+    dft["Filename"] = pd.Series(["fake\\data_test.txt"]*l, dtype=str)
+    dft["E0"] = pd.Series([0]*l, dtype=float)
+    dft["Ep"] = pd.Series([0]*l, dtype=float)
+    dft["dL"] = pd.Series([-1]*l, dtype=float)
+    dft["th_LRL"] = pd.Series([0]*l, dtype=float)
+    dft["phi"] = phi_series
+    dft["enfinal"] = pd.Series([-1*au["GHz"]]*l, dtype=float)
+    dft["bound"] = pd.Series([0]*l, dtype=float)
+    dft["bound_p"] = pd.Series([0]*l, dtype=float)
     # E0=0, Ep=0, dL=-1, th_LRL=0
-    dft["phi"] = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
-    dft["th_LRL"] = pd.Series([0]*len(dft), dtype=float)
-    dft["dL"] = pd.Series([-1]*len(dft), dtype=float)
-    dft["Ep"] = pd.Series([0]*len(dft), dtype=float)
-    dft["E0"] = pd.Series([0]*len(dft), dtype=float)
-    dft["bound"] = pd.Series([0]*len(dft), dtype=float)
     data = data.append(dft)
     # E0=0, Ep=0, dL=-1, th_LRL=pi
     dft.replace({"th_LRL": {0: np.pi}}, inplace=True)
@@ -191,6 +198,7 @@ def bound_test_data(phi0, dphi):
     dft.replace({"th_LRL": {0: np.pi}}, inplace=True)
     data = data.append(dft)
     # add bump to th_LRL = 0 at phi = phi0
+    # build mask
     mask_th = (data["th_LRL"] == 0)
     mask_phi = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
     if phi0-dphi < 0:
@@ -200,10 +208,13 @@ def bound_test_data(phi0, dphi):
         mask_phi = np.logical_or(mask_phi,
                                  (data["phi"] < ((phi0-dphi) % (2*np.pi))))
     mask = mask_th & mask_phi
+    # adjust data
+    data.loc[mask, "enfinal"] = 1.0*au["GHz"]
     data.loc[mask, "bound"] = 1.0
     data.loc[mask, "bound_p"] = 1.0
     # add bump to th_LRL=pi at phi = (phi0+pi) % 2pi
     phi0 = ((phi0 + np.pi) % (2*np.pi))
+    # build mask
     mask_th = (data["th_LRL"] == np.pi)
     mask_phi = ((data["phi"] > phi0-dphi) & (data["phi"] < phi0+dphi))
     if phi0-dphi < 0:
@@ -213,6 +224,8 @@ def bound_test_data(phi0, dphi):
         mask_phi = np.logical_or(mask_phi,
                                  (data["phi"] < ((phi0-dphi) % (2*np.pi))))
     mask = mask_th & mask_phi
+    # adjust data
+    data.loc[mask, "enfinal"] = 1.0*au["GHz"]
     data.loc[mask, "bound"] = 1.0
     data.loc[mask, "bound_p"] = 1.0
     data.reset_index(drop=True, inplace=True)
@@ -225,6 +238,18 @@ def conv_model(x, x0):
     return 0.5*(1 + np.cos(x - x0))
 
 
+def data_triple(data):
+    """Given a DataFrame with "phi" from [0, 2pi], make copies of all
+    observations at [-2pi, 0] and [2pi, 4pi] as well.
+    Returns DataFrame"""
+    temp = data.copy(deep=True)
+    temp["phi"] = temp["phi"] - 2*np.pi
+    data = data.append(temp)
+    temp["phi"] = temp["phi"] + 4*np.pi
+    data = data.append(temp)
+    return data
+
+
 def main(data):
     # build convolution array
     amlaser = pd.DataFrame()
@@ -232,23 +257,12 @@ def main(data):
     amlaser["I"] = conv_model(amlaser["phi"], 0)
     # amlaser.plot(x="phi", y="I", kind="scatter")
     # triple data
-    temp = data.copy(deep=True)
-    temp["phi"] = temp["phi"] - 2*np.pi
-    data = data.append(temp)
-    temp["phi"] = temp["phi"] + 4*np.pi
-    data = data.append(temp)
-    # temp["phi"] = temp["phi"] + 2*np.pi
-    # data = data.append(temp)
-    # data["conv"] = np.convolve(data["bound"], amlaser["I"], mode="same")
-    return data
+    data3 = data_triple(data)
+    # mask particular run with E0, Ep, dL, th_LRL
+    conv = np.convolve(data["bound"], amlaser["I"], mode="same")
+    return data3, conv
 
 
-# data = pd.read_csv("data_bound.txt", index_col=0)
-# mask = ((data["E0"] == 0) & (data["Ep"] == 0))
-# bound_plot(data[mask], "bound")
-# bound_plot(data[mask], "bound_p")
-# data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
-data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
-data.plot(x="phi", y="bound", kind="scatter")
-data = main(data)
-data.plot(x="phi", y="bound", kind="scatter")
+data = pd.read_csv("data_bound.txt", index_col=0)
+data_test = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
+data3, conv = main(data)
