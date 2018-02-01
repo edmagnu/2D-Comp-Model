@@ -167,12 +167,6 @@ def bound_patch():
     return data
 
 
-def conv_model(x, x0):
-    """Model of AM laser envelope to convolve over data["bound"].
-    Returns np.array of 0.5 + np.cos(x + x0)"""
-    return 0.5 + np.cos(x - x0)
-
-
 def bound_test_data(phi0, dphi):
     """Generate mock data to test convolution on.
     Returns DataFrame["th_LRL", "phi", "bound", "bound_p"]"""
@@ -221,6 +215,31 @@ def bound_test_data(phi0, dphi):
     mask = mask_th & mask_phi
     data.loc[mask, "bound"] = 1.0
     data.loc[mask, "bound_p"] = 1.0
+    data.reset_index(drop=True, inplace=True)
+    return data
+
+
+def conv_model(x, x0):
+    """Model of AM laser envelope to convolve over data["bound"].
+    Returns np.array of 0.5 + np.cos(x + x0)"""
+    return 0.5*(1 + np.cos(x - x0))
+
+
+def main(data):
+    # build convolution array
+    amlaser = pd.DataFrame()
+    amlaser["phi"] = data["phi"]
+    amlaser["I"] = conv_model(amlaser["phi"], 0)
+    # amlaser.plot(x="phi", y="I", kind="scatter")
+    # triple data
+    temp = data.copy(deep=True)
+    temp["phi"] = temp["phi"] - 2*np.pi
+    data = data.append(temp)
+    temp["phi"] = temp["phi"] + 4*np.pi
+    data = data.append(temp)
+    # temp["phi"] = temp["phi"] + 2*np.pi
+    # data = data.append(temp)
+    # data["conv"] = np.convolve(data["bound"], amlaser["I"], mode="same")
     return data
 
 
@@ -228,4 +247,8 @@ def bound_test_data(phi0, dphi):
 # mask = ((data["E0"] == 0) & (data["Ep"] == 0))
 # bound_plot(data[mask], "bound")
 # bound_plot(data[mask], "bound_p")
+# data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
 data = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
+data.plot(x="phi", y="bound", kind="scatter")
+data = main(data)
+data.plot(x="phi", y="bound", kind="scatter")
