@@ -321,7 +321,7 @@ def convolution(data, mask):
 
 
 
-def main():
+def test_convolve():
     phi0 = np.pi/6
     dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
@@ -351,4 +351,4 @@ def main():
     return data, conv, mask
 
 
-main()
+test_convolve()
