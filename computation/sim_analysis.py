@@ -9,6 +9,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+import itertools
 
 
 def atomic_units():
@@ -259,7 +260,7 @@ def data_triple(data):
     return data
 
 
-def main(data):
+def convolutions(data):
     # build convolution array
     amlaser = pd.DataFrame()
     amlaser["phi"] = data["phi"]
@@ -273,7 +274,38 @@ def main(data):
     return data3, conv
 
 
-# bound_patch()
-data = pd.read_csv("data_bound.txt", index_col=0)
-mask_nan = np.isnan(data["bound_p"])
-print(len(data[mask_nan]))
+def inventory():
+    data = pd.read_csv("data_bound.txt", index_col=0)
+    au = atomic_units()
+    # build combinations list for E0, Ep, dL, th_LRL
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    header = (keys[0] + "\t" + keys[1] + "\t" + keys[2] + "\t" + keys[3]
+              + "\t" + "NaN/Tot")
+    vals = {}
+    reports = [[header]]
+    for key in keys:
+        vals[key] = np.sort(data[key].unique())
+    # build mask for each combination
+    combos = itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    for combo in combos:
+        val = {}
+        mask = [True]*len(data)  # start with every point
+        for i in [0, 1, 2, 3]:
+            mask = mask & (data[keys[i]] == combo[i])  # add conditions to mask
+            val[keys[i]] = combo[i]
+        mask_nan = np.isnan(data["enfinal"])  # also compare to NaN
+        # print conditions and NaN/total observations.
+        report = "{0:> 6.2f} \t {1:> 8.2f} \t {2: .0f} \t {3:.0f}"
+        report = report + " \t {4:>3.0f}/{5:>3.0f}"
+        report = report.format(
+                val["E0"]/au["GHz"], val["Ep"]/au["mVcm"], val["dL"],
+                val["th_LRL"]/np.pi, sum(mask & mask_nan), sum(mask))
+        # print(report)
+        reports = np.append(reports, [report])
+    reports = pd.DataFrame(reports)
+    reports.to_csv("inventory.txt", header=False, index=False)
+    return reports
+
+
+reports = inventory()
