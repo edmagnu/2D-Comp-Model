@@ -118,12 +118,49 @@ def bound_plot(data, key="bound"):
     return None
 
 
+def single_patch(data, i):
+    """Given a known enfinal=NaN at location i, determine bound_p from average
+    of nearest neighbors. data.iloc[i]["bound_p"] is fixed.
+    Returns DataFrame"""
+    obs = data.iloc[i]  # get the NaN observation
+    # mask out each quality (E0, Ep, dL, th_LRL)
+    mask = ((data["E0"] == obs["E0"]) & (data["Ep"] == obs["Ep"]) &
+            (data["dL"] == obs["dL"]) & (data["th_LRL"] == obs["th_LRL"]))
+    run = data[mask][["phi", "enfinal", "bound"]]
+    run.sort_values(by="phi", inplace=True)
+    # find NaN nearest neighbors in run.
+    inan = run.index.get_loc(i)  # get physical location in run
+    # nearest neighbor from below
+    imin = np.NaN
+    di = 1
+    while np.isnan(imin):  # step down until "bound" is not NaN
+        itemp = (inan-di) % len(run)  # wrap if itemp out of range
+        if np.logical_not(np.isnan(run.iloc[itemp]["bound"])):
+            imin = inan-di
+        di = di + 1
+    # nearest neighbor from above
+    imax = np.NaN
+    di = 1
+    while np.isnan(imax):  # step up until "bound" is not NaN
+        itemp = (inan+di) % len(run)  # wrap if itemp is out of range
+        if np.logical_not(np.isnan(run.iloc[itemp]["bound"])):
+            imax = inan+di
+        di = di+1
+    # print(imin, imax)
+    # take the distance to the furtherst "nearest neighbor"
+    di = max([imax-inan, inan-imin])
+    # replace bad "bound" with patched "bound_p"
+    # array mod len() handles indexes out of range
+    iarray = np.arange(inan-di, inan+di+1) % len(run)
+    data.loc[i, "bound_p"] = np.mean(run["bound"].iloc[iarray])
+    return data
+
+
 def bound_patch():
     """Reads raw data from read_tidy() output, and uses enfinal to add "bound"
     to the DataFrame. To replace NaN, "bound_p" averages nearest neighbors in
     "bound". Writes new data to "data_bound.txt"
-    Returns data DataFrame
-    """
+    Returns data DataFrame"""
     data = pd.read_csv("data_raw.txt", index_col=0)
     data.reset_index(drop=True, inplace=True)
     mask_nan = np.isnan(data["enfinal"])
@@ -134,35 +171,7 @@ def bound_patch():
     # replace NaN with average of surrounding.
     for i in data[mask_nan].index:
         print(i, "/", len(mask_nan))  # progress
-        obs = data.iloc[i]  # get the NaN observation
-        # mask out each quality (E0, Ep, dL, th_LRL)
-        mask = ((data["E0"] == obs["E0"]) & (data["Ep"] == obs["Ep"]) &
-                (data["dL"] == obs["dL"]) & (data["th_LRL"] == obs["th_LRL"]))
-        run = data[mask][["phi", "enfinal", "bound"]]
-        run.sort_values(by="phi", inplace=True)
-        # find NaN nearest neighbors in run.
-        inan = run.index.get_loc(i)  # get physical location in run
-        # nearest neighbor from below
-        imin = np.NaN
-        di = 1
-        while np.isnan(imin):  # step down until "bound" is not NaN
-            itemp = (inan-di) % len(run)  # wrap if itemp out of range
-            if np.logical_not(np.isnan(run.iloc[itemp]["bound"])):
-                imin = inan-di
-            di = di + 1
-        # nearest neighbor from above
-        imax = np.NaN
-        di = 1
-        while np.isnan(imax):  # step up until "bound" is not NaN
-            itemp = (inan+di) % len(run)  # wrap if itemp is out of range
-            if np.logical_not(np.isnan(run.iloc[itemp]["bound"])):
-                imax = inan+di
-            di = di+1
-        # print(imin, imax)
-        # take the distance to the furtherst "nearest neighbor"
-        di = max([imax-inan, inan-imin])
-        # replace bad "bound" with patched "bound_p"
-        data.loc[i, "bound_p"] = np.mean(run["bound"].iloc[inan-di:inan+di+1])
+        data = single_patch(data, i)  # run for each value
     data.to_csv("data_bound.txt")
     return data
 
@@ -175,16 +184,16 @@ def bound_test_data(phi0, dphi):
     dft = pd.DataFrame()
     # Start with E0=0, Ep=0, dL=-1, th_LRL=0
     phi_series = pd.Series(np.arange(0, 2*np.pi, np.pi/100), dtype=float)
-    l = len(phi_series)
-    dft["Filename"] = pd.Series(["fake\\data_test.txt"]*l, dtype=str)
-    dft["E0"] = pd.Series([0]*l, dtype=float)
-    dft["Ep"] = pd.Series([0]*l, dtype=float)
-    dft["dL"] = pd.Series([-1]*l, dtype=float)
-    dft["th_LRL"] = pd.Series([0]*l, dtype=float)
+    ln = len(phi_series)
+    dft["Filename"] = pd.Series(["fake\\data_test.txt"]*ln, dtype=str)
+    dft["E0"] = pd.Series([0]*ln, dtype=float)
+    dft["Ep"] = pd.Series([0]*ln, dtype=float)
+    dft["dL"] = pd.Series([-1]*ln, dtype=float)
+    dft["th_LRL"] = pd.Series([0]*ln, dtype=float)
     dft["phi"] = phi_series
-    dft["enfinal"] = pd.Series([-1*au["GHz"]]*l, dtype=float)
-    dft["bound"] = pd.Series([0]*l, dtype=float)
-    dft["bound_p"] = pd.Series([0]*l, dtype=float)
+    dft["enfinal"] = pd.Series([-1*au["GHz"]]*ln, dtype=float)
+    dft["bound"] = pd.Series([0]*ln, dtype=float)
+    dft["bound_p"] = pd.Series([0]*ln, dtype=float)
     # E0=0, Ep=0, dL=-1, th_LRL=0
     data = data.append(dft)
     # E0=0, Ep=0, dL=-1, th_LRL=pi
@@ -259,10 +268,12 @@ def main(data):
     # triple data
     data3 = data_triple(data)
     # mask particular run with E0, Ep, dL, th_LRL
+    # data["E0"].unique()
     conv = np.convolve(data["bound"], amlaser["I"], mode="same")
     return data3, conv
 
 
+# bound_patch()
 data = pd.read_csv("data_bound.txt", index_col=0)
-data_test = bound_test_data(phi0=np.pi/6, dphi=np.pi/12)
-data3, conv = main(data)
+mask_nan = np.isnan(data["bound_p"])
+print(len(data[mask_nan]))
