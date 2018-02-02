@@ -252,26 +252,17 @@ def data_triple(data):
     """Given a DataFrame with "phi" from [0, 2pi], make copies of all
     observations at [-2pi, 0] and [2pi, 4pi] as well.
     Returns DataFrame"""
-    temp = data.copy(deep=True)
+    temp = data.copy(deep=True)  # df1 = df2 makes pointers equal
+    # below
     temp["phi"] = temp["phi"] - 2*np.pi
+    temp.set_index(temp.index - len(temp), inplace=True)
     data = data.append(temp)
+    # above
     temp["phi"] = temp["phi"] + 4*np.pi
+    temp.set_index(temp.index + 2*len(temp), inplace=True)
     data = data.append(temp)
+    data.sort_values(by="phi", inplace=True)
     return data
-
-
-def convolutions(data):
-    # build convolution array
-    amlaser = pd.DataFrame()
-    amlaser["phi"] = data["phi"]
-    amlaser["I"] = conv_model(amlaser["phi"], 0)
-    # amlaser.plot(x="phi", y="I", kind="scatter")
-    # triple data
-    data3 = data_triple(data)
-    # mask particular run with E0, Ep, dL, th_LRL
-    # data["E0"].unique()
-    conv = np.convolve(data["bound"], amlaser["I"], mode="same")
-    return data3, conv
 
 
 def inventory():
@@ -308,4 +299,37 @@ def inventory():
     return reports
 
 
-reports = inventory()
+def convolutions(data):
+    # build convolution array
+    # mask particular run
+    vals = {}
+    keys = ["dL", "th_LRL"]
+    for key in keys:
+        vals[key] = np.sort(data[key].unique())
+    mask = (data["dL"] == vals["dL"][0])
+    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
+    # amlaser.plot(x="phi", y="I", kind="scatter")
+    amlaser = pd.DataFrame()
+    amlaser["phi"] = data[mask]["phi"]
+    amlaser["I"] = conv_model(amlaser["phi"], np.pi)
+    # triple data
+    data3 = data_triple(data[mask])
+    # mask particular run with E0, Ep, dL, th_LRL
+    # convolve
+    conv3 = pd.DataFrame()
+    conv3["phi"] = data3["phi"]
+    # conv3["conv"] =
+    conv3["conv"] = np.convolve(data3["bound"], amlaser["I"], mode="same")
+    conv = conv3.loc[0:199]
+    data = data3.loc[0:199]
+    return data, conv
+
+
+phi0 = 10*np.pi/6
+data = bound_test_data(phi0=phi0, dphi=np.pi/12)
+data3, conv3 = convolutions(data)
+conv3.plot(x="phi", y="conv", kind="scatter")
+plt.axvline(2*np.pi, color="black")
+plt.axvline(0, color="black")
+plt.axvline(phi0, color="black")
+plt.plot(data3["phi"], data3["bound_p"], ".", color="C1")
