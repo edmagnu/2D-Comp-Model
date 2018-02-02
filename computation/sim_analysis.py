@@ -242,23 +242,6 @@ def bound_test_data(phi0, dphi):
     return data
 
 
-def data_triple(data):
-    """Given a DataFrame with "phi" from [0, 2pi], make copies of all
-    observations at [-2pi, 0] and [2pi, 4pi] as well.
-    Returns DataFrame"""
-    temp = data.copy(deep=True)  # df1 = df2 makes pointers equal
-    # below
-    temp["phi"] = temp["phi"] - 2*np.pi
-    temp.set_index(temp.index - len(temp), inplace=True)
-    data = data.append(temp)
-    # above
-    temp["phi"] = temp["phi"] + 4*np.pi
-    temp.set_index(temp.index + 2*len(temp), inplace=True)
-    data = data.append(temp)
-    data.sort_values(by="phi", inplace=True)
-    return data
-
-
 def inventory():
     data = pd.read_csv("data_bound.txt", index_col=0)
     au = atomic_units()
@@ -299,6 +282,23 @@ def conv_model(x, x0):
     return 0.5*(1 + np.cos(x - x0))
 
 
+def data_triple(data):
+    """Given a DataFrame with "phi" from [0, 2pi], make copies of all
+    observations at [-2pi, 0] and [2pi, 4pi] as well.
+    Returns DataFrame"""
+    temp = data.copy(deep=True)  # df1 = df2 makes pointers equal
+    # below
+    temp["phi"] = temp["phi"] - 2*np.pi
+    temp.set_index(temp.index - len(temp), inplace=True)
+    data = data.append(temp)
+    # above
+    temp["phi"] = temp["phi"] + 4*np.pi
+    temp.set_index(temp.index + 2*len(temp), inplace=True)
+    data = data.append(temp)
+    data.sort_values(by="phi", inplace=True)
+    return data
+
+
 def convolution(data, mask):
     """Run a convolution on data[mask] based on conv_model().
     Set the "conv" key in data to the result.
@@ -316,9 +316,8 @@ def convolution(data, mask):
     # conv3["conv"] =
     conv3["conv"] = np.convolve(data3["bound"], amlaser["I"], mode="same")
     conv = conv3.loc[0:199]
-    data.loc[mask, "conv"] = conv["conv"]
+    data.loc[mask, "conv"] = conv3.loc[0:199, "conv"]
     return data, conv, mask
-
 
 
 def test_convolve():
@@ -327,15 +326,24 @@ def test_convolve():
     data = bound_test_data(phi0=phi0, dphi=dphi)
     # build dict of parameters
     vals = {}
-    keys = ["dL", "th_LRL"]
+    keys = ["E0", "Ep", "dL", "th_LRL"]
     for key in keys:
         vals[key] = np.sort(data[key].unique())
     # build convolution array
     data["conv"] = pd.Series([np.NaN]*len(data), dtype=float)
     # mask particular run
-    mask = (data["dL"] == vals["dL"][0])
-    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
-    data, conv, mask = convolution(data, mask)
+    combos = itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    for combo in combos:
+        val = {}  # store current values
+        mask = [True]*len(data)  # start with every point
+        for i in [0, 1, 2, 3]:
+            mask = mask & (data[keys[i]] == combo[i])  # add conditions to mask
+            val[keys[i]] = combo[i]
+        print(val)
+        print(data[mask].index)
+        data, conv, mask = convolution(data, mask)
+        # conv.plot(x="phi", y="conv")
     # ax = conv.plot(x="phi", y="conv", kind="scatter", color="C0")
     fig, ax = plt.subplots()
     ax.plot(data[mask]["phi"], data[mask]["bound_p"], ".", color="C0",
@@ -351,4 +359,4 @@ def test_convolve():
     return data, conv, mask
 
 
-test_convolve()
+data, conv, mask = test_convolve()
