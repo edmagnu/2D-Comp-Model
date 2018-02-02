@@ -171,7 +171,7 @@ def bound_patch():
     data.loc[mask_nan, "bound"] = np.NaN
     # replace NaN with average of surrounding.
     for i in data[mask_nan].index:
-        print(i, "/", len(mask_nan))  # progress
+        print(i, "/", len(mask_nan), end="\r")  # progress
         data = single_patch(data, i)  # run for each value
     data.to_csv("data_bound.txt")
     return data
