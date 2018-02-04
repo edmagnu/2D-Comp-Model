@@ -60,12 +60,16 @@ def Efinal_phase():
 
 
 def DIL():
+    """Produce a plot of the potential seen by an electron in a static field
+    and the depressed ioniztionlimit as a function of static field.
+    Returns DataFrames potential, dlimit
+    """
     # Atomic units
     fAU1mVcm = 1.94469e-13
     enAU1GHz = 1.51983e-7
     # set up figure
     fig, ax = plt.subplots(figsize=(6, 3), ncols=2)
-    # Potential plot
+    # Potential DataFrame
     f = 10*fAU1mVcm
     lim = -2*(np.abs(f))**(0.5)/enAU1GHz
     rbound = (1/np.abs(f))**0.5
@@ -77,33 +81,49 @@ def DIL():
     potential["C"] = -1/(np.abs(potential["z"]))/enAU1GHz
     potential["E"] = -f*potential["z"]/enAU1GHz
     potential["V"] = potential["C"] + potential["E"]
+    # plot potential
     potential.plot(x="z", y="V", linewidth="3", ax=ax[0])
     potential.plot(x="z", y="E", linewidth="3",
-                   label=r"$-E \cdot r$", ax=ax[0])
+                   label=r"$-E \cdot z$", ax=ax[0])
+    # add Field arrow
+    acent = 0
+    awidth = 0.1*zmax
+    ax[0].arrow(x=acent+awidth/2, y=15, dx=-awidth, dy=0, width=1,
+                length_includes_head=True, head_width=5,
+                head_length=0.2*awidth, fc="k", ec="k")
+    props = props = dict(boxstyle='round', facecolor="white", color="white", alpha=1.0)
+    ax[0].text(0.8, 0.7, r"$\vec{E}$", transform=ax[0].transAxes, fontsize=14,
+               verticalalignment="top", horizontalalignment="right",
+               bbox=props)
+    # add indicator lines
     ax[0].axhline(0, linestyle="dashed", color="gray")
     ax[0].axhline(lim, linestyle="dashed", color="gray")
     ax[0].axvline(rbound, linestyle="dashed", color="gray")
+    # make it pretty
     ax[0].set_xlim(-0.15*zmax, 0.15*zmax)
     ax[0].set_ylim(-50, 50)
     ax[0].set_xticks([rbound, 0])
     ax[0].set_xticklabels([r"$\sqrt{1/E}$", 0])
     ax[0].set_yticks([lim, 0])
     ax[0].set_yticklabels([r"$-2\sqrt{E}$", 0])
-    ax[0].set_xlabel("distance")
+    ax[0].set_xlabel("z")
     ax[0].set_ylabel("Energy")
     ax[0].legend(loc=2, framealpha=1)
+    # add (a) box
     props = props = dict(boxstyle='round', facecolor="white", alpha=1.0)
-    ax[0].text(0.9, 0.95, "(a)", transform=ax[0].transAxes, fontsize=14,
+    ax[0].text(0.95, 0.95, "(a)", transform=ax[0].transAxes, fontsize=14,
                verticalalignment="top", horizontalalignment="right",
                bbox=props)
-    # Limit Plot
+    # Limit DataFrame
     fmin = 0
     fmax = 300
     df = 0.1
     dlimit = pd.DataFrame({"field": np.arange(fmin, fmax+df, df)})
     dlimit["limit"] = -2/enAU1GHz*(dlimit["field"]*fAU1mVcm)**(0.5)
+    # plot limit
     dlimit.plot(x="field", y="limit", linewidth="3", legend=None,
                 ax=ax[1])
+    # make it pretty
     ax[1].set_xlabel("Field (mV/cm)")
     ax[1].set_xlim(-10, 110)
     ax[1].set_ylabel("Depressed Ionization Limit (GHz)")
@@ -111,11 +131,11 @@ def DIL():
     ax[1].set_yticks(np.arange(-70, 20, 10))
     ax[1].grid(b=True, which="major", color="black")
     ax[1].grid(b=True, which="minor")
+    # add (b) box
     props = props = dict(boxstyle='round', facecolor="white", alpha=1)
-    ax[1].text(0.9, 0.95, "(b)", transform=ax[1].transAxes, fontsize=14,
+    ax[1].text(0.95, 0.95, "(b)", transform=ax[1].transAxes, fontsize=14,
                verticalalignment="top", horizontalalignment="right",
                bbox=props)
-    
     # finalize figure
     plt.tight_layout()
     plt.savefig("DIL.pdf")
