@@ -66,9 +66,9 @@ def DIL():
     # set up figure
     fig, ax = plt.subplots(figsize=(6, 3), ncols=2)
     # Potential plot
-    f = -10*fAU1mVcm
+    f = 10*fAU1mVcm
     lim = -2*(np.abs(f))**(0.5)/enAU1GHz
-    rbound = -(1/np.abs(f))**0.5
+    rbound = (1/np.abs(f))**0.5
     zmax = 10000000
     dz = zmax/10000
     potential = pd.DataFrame({"z": np.arange(-zmax, 0, dz)})
@@ -86,7 +86,7 @@ def DIL():
     ax[0].set_xlim(-0.15*zmax, 0.15*zmax)
     ax[0].set_ylim(-50, 50)
     ax[0].set_xticks([rbound, 0])
-    ax[0].set_xticklabels([r"$-\sqrt{1/E}$", 0])
+    ax[0].set_xticklabels([r"$\sqrt{1/E}$", 0])
     ax[0].set_yticks([lim, 0])
     ax[0].set_yticklabels([r"$-2\sqrt{E}$", 0])
     ax[0].set_xlabel("distance")
