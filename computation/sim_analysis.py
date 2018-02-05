@@ -242,29 +242,6 @@ def bound_test_data(phi0, dphi):
     return data
 
 
-def conv_model(x, x0):
-    """Model of AM laser envelope to convolve over data["bound"].
-    Returns np.array of 0.5 + np.cos(x + x0)"""
-    return 0.5*(1 + np.cos(x - x0))
-
-
-def data_triple(data):
-    """Given a DataFrame with "phi" from [0, 2pi], make copies of all
-    observations at [-2pi, 0] and [2pi, 4pi] as well.
-    Returns DataFrame"""
-    temp = data.copy(deep=True)  # df1 = df2 makes pointers equal
-    # below
-    temp["phi"] = temp["phi"] - 2*np.pi
-    temp.set_index(temp.index - len(temp), inplace=True)
-    data = data.append(temp)
-    # above
-    temp["phi"] = temp["phi"] + 4*np.pi
-    temp.set_index(temp.index + 2*len(temp), inplace=True)
-    data = data.append(temp)
-    data.sort_values(by="phi", inplace=True)
-    return data
-
-
 def inventory():
     data = pd.read_csv("data_bound.txt", index_col=0)
     au = atomic_units()
@@ -299,19 +276,37 @@ def inventory():
     return reports
 
 
-def convolutions(data):
-    # build convolution array
-    # mask particular run
-    vals = {}
-    keys = ["dL", "th_LRL"]
-    for key in keys:
-        vals[key] = np.sort(data[key].unique())
-    mask = (data["dL"] == vals["dL"][0])
-    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
+def conv_model(x, x0):
+    """Model of AM laser envelope to convolve over data["bound"].
+    Returns np.array of 0.5 + np.cos(x + x0)"""
+    return 0.5*(1 + np.cos(x - x0))
+
+
+def data_triple(data):
+    """Given a DataFrame with "phi" from [0, 2pi], make copies of all
+    observations at [-2pi, 0] and [2pi, 4pi] as well.
+    Returns DataFrame"""
+    temp = data.copy(deep=True)  # df1 = df2 makes pointers equal
+    # below
+    temp["phi"] = temp["phi"] - 2*np.pi
+    temp.set_index(temp.index - len(temp), inplace=True)
+    data = data.append(temp)
+    # above
+    temp["phi"] = temp["phi"] + 4*np.pi
+    temp.set_index(temp.index + 2*len(temp), inplace=True)
+    data = data.append(temp)
+    data.sort_values(by="phi", inplace=True)
+    return data
+
+
+def convolution(data, mask):
+    """Run a convolution on data[mask] based on conv_model().
+    Set the "conv" key in data to the result.
+    Returns DataFrame"""
     # amlaser.plot(x="phi", y="I", kind="scatter")
     amlaser = pd.DataFrame()
     amlaser["phi"] = data[mask]["phi"]
-    amlaser["I"] = conv_model(amlaser["phi"], np.pi)
+    amlaser["I"] = conv_model(amlaser["phi"], np.pi)/(200*0.5)
     # triple data
     data3 = data_triple(data[mask])
     # mask particular run with E0, Ep, dL, th_LRL
@@ -321,15 +316,47 @@ def convolutions(data):
     # conv3["conv"] =
     conv3["conv"] = np.convolve(data3["bound"], amlaser["I"], mode="same")
     conv = conv3.loc[0:199]
-    data = data3.loc[0:199]
-    return data, conv
+    data.loc[mask, "conv"] = conv3.loc[0:199, "conv"]
+    return data, conv, mask
 
 
-phi0 = 10*np.pi/6
-data = bound_test_data(phi0=phi0, dphi=np.pi/12)
-data3, conv3 = convolutions(data)
-conv3.plot(x="phi", y="conv", kind="scatter")
-plt.axvline(2*np.pi, color="black")
-plt.axvline(0, color="black")
-plt.axvline(phi0, color="black")
-plt.plot(data3["phi"], data3["bound_p"], ".", color="C1")
+def test_convolve():
+    phi0 = np.pi/6
+    dphi = np.pi/12
+    data = bound_test_data(phi0=phi0, dphi=dphi)
+    # build dict of parameters
+    vals = {}
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    for key in keys:
+        vals[key] = np.sort(data[key].unique())
+    # build convolution array
+    data["conv"] = pd.Series([np.NaN]*len(data), dtype=float)
+    # mask particular run
+    combos = itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    for combo in combos:
+        val = {}  # store current values
+        mask = [True]*len(data)  # start with every point
+        for i in [0, 1, 2, 3]:
+            mask = mask & (data[keys[i]] == combo[i])  # add conditions to mask
+            val[keys[i]] = combo[i]
+        print(val)
+        print(data[mask].index)
+        data, conv, mask = convolution(data, mask)
+        # conv.plot(x="phi", y="conv")
+    # ax = conv.plot(x="phi", y="conv", kind="scatter", color="C0")
+    fig, ax = plt.subplots()
+    ax.plot(data[mask]["phi"], data[mask]["bound_p"], ".", color="C0",
+            label="bound")
+    # data[mask].plot(x="phi", y="bound_p", kind="scatter", color="C0", ax=ax)
+    ax.plot(data[mask]["phi"], data[mask]["conv"], ".", color="C1",
+            label="conv")
+    # data[mask].plot(x="phi", y="conv", kind="scatter", color="C1", ax=ax)
+    ax.axvline(2*np.pi, color="black")
+    ax.axvline(0, color="black")
+    ax.axvline(phi0, color="black", linestyle="dashed")
+    ax.legend()
+    return data, conv, mask
+
+
+data, conv, mask = test_convolve()
