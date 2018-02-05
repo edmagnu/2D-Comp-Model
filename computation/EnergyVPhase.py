@@ -159,6 +159,6 @@ def DIL_table():
     return dil
 
 # fits = Efinal_phase()
-# potential, dlimit = DIL()
-dil = DIL_table()
+potential, dlimit = DIL()
+# dil = DIL_table()
 print(dil)
