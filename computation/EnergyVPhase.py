@@ -11,6 +11,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def atomic_units():
+    """Return a dictionary of atomic units"""
+    au = {"GHz": 1.51983e-7, "mVcm": 1.94469e-13, "ns": 4.13414e7}
+    return au
+
+
 def model_func(x, a, phi):
     """Function to fit E_final vs phi.
     Returns a*cos(x-phi)"""
@@ -88,10 +94,10 @@ def DIL():
     # add Field arrow
     acent = 0
     awidth = 0.1*zmax
-    ax[0].arrow(x=acent+awidth/2, y=15, dx=-awidth, dy=0, width=1,
+    ax[0].arrow(x=acent-awidth/2, y=15, dx=awidth, dy=0, width=1,
                 length_includes_head=True, head_width=5,
                 head_length=0.2*awidth, fc="k", ec="k")
-    props = props = dict(boxstyle='round', facecolor="white", color="white", alpha=1.0)
+    props = props = dict(boxstyle='round', color="white", alpha=1.0)
     ax[0].text(0.8, 0.7, r"$\vec{E}$", transform=ax[0].transAxes, fontsize=14,
                verticalalignment="top", horizontalalignment="right",
                bbox=props)
@@ -126,7 +132,7 @@ def DIL():
     # make it pretty
     ax[1].set_xlabel("Field (mV/cm)")
     ax[1].set_xlim(-10, 110)
-    ax[1].set_ylabel("Depressed Ionization Limit (GHz)")
+    ax[1].set_ylabel("DIL (GHz)")
     ax[1].set_ylim(-70, 10)
     ax[1].set_yticks(np.arange(-70, 20, 10))
     ax[1].grid(b=True, which="major", color="black")
@@ -142,5 +148,17 @@ def DIL():
     return potential, dlimit
 
 
+def DIL_table():
+    au = atomic_units()
+    dil = pd.DataFrame()
+    dil["fields"] = pd.Series(
+            np.array([1, 2, 5, 10, 20, 30, 40, 60, 80, 100, 125, 150, 200,
+                      300]))
+    dil["dil"] = pd.Series(2*np.sqrt(dil["fields"]*au["mVcm"])/au["GHz"])
+    dil["n"] = np.sqrt(1/(2*dil["dil"]*au["GHz"]))
+    return dil
+
 # fits = Efinal_phase()
-potential, dlimit = DIL()
+# potential, dlimit = DIL()
+dil = DIL_table()
+print(dil)

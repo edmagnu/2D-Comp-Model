@@ -12,16 +12,122 @@
 \date{\today}
 
 \begin{abstract}
-A 2-D classical elecron orbit model describes experimental results for phase dependent ionization and recombination of near-ionization-threshold states in a strong MW field and weak static field. To better understand the concepts involved, we look to a 1-D model. Here, we investigate the turning time for electrons launched in the coulomb and static field.
+A 2-D classical electron orbit model describes experimental results for phase dependent ionization and recombination of near-ionization-threshold states in a strong MW field and weak static field. To better understand the concepts involved, we look to a 1-D model. Here, we investigate the turning time for electrons launched in the coulomb and static field.
 \end{abstract}
 
 \maketitle
 
+\section{\label{sec:AU} Atomic Units}
+
+All calculations are presented in atomic units. Useful atomic units, found in Rydberg Atoms by Tom Gallagher \emph{(CITE)}:
+\begin{align*}
+ & \text{Energy} & E_{AU} & & & 4.35974417 \cdot 10^{-18} ~ \text{J} \\
+ & \text{Time} & t_{AU} & & & 2.418884326505 \cdot 10^{-17} ~ \text{s} \\
+ & \text{Field} & f_{AU} & & & 5.14220652 \cdot 10^{11} ~ \text{V/m}
+\end{align*}
+After calculations, it's useful to transform back to lab units.
+\begin{align*}
+\text{1 GHz} & = 1.51983 \cdot 10^{-7} \cdot E_{AU} \\
+\text{1 ns} & = 4.13414 \cdot 10^7 \cdot t_{AU} \\
+\text{1 mV/cm} & = 1.94469 \cdot 10^{-13} \cdot f_{AU}
+\end{align*}
+
 \section{\label{sec:DIL} Classical Ionization Limit in a Static Field}
+
+The potential seen by an electron in a coulomb potential and static field is 
+\begin{align*}
+V & = -\frac{1}{r} - Ez
+\end{align*}
+\begin{align*}
+\text{for} ~ z < 0: & \text{``uphill''} & \text{for} ~ z > 0: & \text{``downhill''} \\\
+V & = \frac{1}{z} - Ez & V & = -\frac{1}{z} - Ez
+\end{align*}
+The static field lowers the potential barrier. Classically, this leads to a depressed ionization limit (DIL). This can be found by setting the slope of the potential to zero. In all calculations, $\hat{E} = \hat{z}$.
+\begin{align*}
+\frac{dV}{dz} = 0 & = 1/z_{Lim}^2 - E \quad (z>0 ~ \text{``downhill''}) \\
+z_{Lim} & = 1/\sqrt{E} \\
+V_{Lim} & = -\sqrt{E} - \frac{E}{\sqrt{E}} \\
+ & = -2 \sqrt{E}
+\end{align*}
+The potential in a static field, and the DIL vs. field are shown in Fig.~\ref{fig:DIL}, and various quantities are provided in Table~\ref{tab:DIL}. From Fig.~\ref{fig:DIL}, we call electrons traveling in the $-\hat{z}$ direction ``uphill'' and those in the $+\hat{z}$ direction ``downhill'' electrons.
+
+\begin{table}
+\caption{\label{tab:DIL} At various applied fields, the ionization limit ($DIL = 2\sqrt{E}$) and the highest lying classically bound zero-field state ($n = \text{floor}(\sqrt{1/2DIL})$) are calculated.}
+\begin{ruledtabular}
+\begin{tabular}{r||r|r|r|r|r|r|r|r|r|r|r|r|r|r}
+Field (mV/cm) & 1 & 2 & 5 & 10 & 20 & 30 & 50 & 60 & 80 & 100 & 125 & 150 & 200 & 300 \\ \hline
+DIL (GHz) & 5.8 & 8.2 & 13.0 & 18.4 & 26.0 & 31.7 & 36.7 & 45.0 & 51.9 & 58.0 & 64.9 & 71.1 & 82.1 & 100.5 \\ \hline
+n & 753 & 633 & 503 & 423 & 356 & 321 & 299 & 270 & 251 & 238 & 225 & 215 & 200 & 180
+\end{tabular}
+\end{ruledtabular}
+\end{table}
 
 \begin{figure}
 \includegraphics[width=\textwidth]{computation/DIL}
-\caption{\label{fig:DIL} \textbf{(a)} Total potential seen by an electron in a static field. Electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL as a function of applied Field.}
+\caption{\label{fig:DIL} Applying a static field depresses the potential barrier an electron sees, classically leading to a depressed ionization limit (DIL). \textbf{(a)} Total potential seen by an electron in a static field. Electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL against applied static field.}
 \end{figure}
+
+\section{\label{sec:Turning} Integral for Turning Time}
+
+We would like to find the travel time from the electrons initial position ($z_i$) to the turning point ($z_T$). Knowing the total energy of the electron (W) and the potential (V), an integral for the travel time can be derived.
+\begin{align*}
+W & = \text{Total Energy} \\
+K = \frac{1}{2} v^2 & =  W - V \\
+\end{align*}
+\begin{align*}
+\text{for} ~ & z < 0: ~ \text{``uphill''} & \text{for} ~ & z > 0: ~ \text{``downhill''} \\
+V & = \frac{1}{z} - Ez & V & = -\frac{1}{z} - Ez \\
+\frac{1}{2} v^2 & = W - \frac{1}{z} + Ez & \frac{1}{2} v^2 & = W + \frac{1}{z} + Ez \\
+v = \frac{dz}{dt} & = -\sqrt{2(W - 1/z + Ez)} & v = \frac{dz}{dt} & = \sqrt{2(W + 1/z + Ez} \\
+t_{u,T} & = \int_{z_i}^{z_T} -1/\sqrt{2(W - 1/z + Ez)} \cdot dz & t_{d,T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W + 1/z + Ez)} \cdot dz
+\end{align*}
+
+\subsection{\label{sec:zi} Inner Turning Point}
+
+There is no computational issue with using $z_i = 0$, however, using the inner turning point may be more physically meaningful. This is found by accounting for angular momentum conservation.
+\begin{align*}
+W & = V(z_i) + \frac{l^2}{2z^2} \\
+W & = \pm \frac{1}{z_i} - Ez_i + \frac{l^2}{2z_i^2} \\
+0 & = Ez_i^3 + Wz_i^2 \pm z_i - l^2/2 \\
+& \text{The full cubic could be solved, but for our purposes} \\
+ & |E| < 1000 ~ \text{mV/cm} ~ \text{and} ~ |W| < 1000 ~ \text{GHz} ~ \text{and} ~ |z_i| < 100. \\
+ & \text{So} ~ \frac{l^2}{2z_i^2} >> Ez_i ~ , ~ W \\
+0 & = \left(\frac{l^2}{2z_i^2} - Ez_i - W\right) \cdot z_i \pm 1 \\
+z_i & \approx l^2/2
+\end{align*}
+For $l = 3$, $z_i = 6$. Solving the full cubic with $|E| < 1000 ~ \text{mV/cm}$ and $|W| < 1000 ~ \text{GHz}$ shows this is true to 1 part in 100. Integrating shows the time an electron takes to travel from $z = 0$ to $z = 6$ is negligible for these same conditions.
+\begin{align*}
+\Delta t & = \int_0^6 1/\sqrt{2(W + 1/z + Ez)} \cdot dz \\
+ & \approx 4\sqrt{3} \\
+ & = 1.7 \cdot 10^{-7} ~ \text{ns} 
+\end{align*}
+
+\subsection{\label{sec:zT} Outer Turning Point}
+
+At the outer turning point the electron has come to rest, so $K=0$ and $W = V(z_T)$.
+\begin{align*}
+\text{for} ~ & z < 0: ~ \text{``uphill''} & \text{for} ~ & z > 0: ~ \text{``downhill''} \\
+0 & = 1/z_T - Ez_T - W & 0 & = -1/z_T - Ez_T - W \\
+0 & = Ez_T^2 + Wz_T - 1 & 0 & = Ez_T^2 + Wz_T + 1 \\
+z_T & = -\frac{1}{2E} \left(W \pm \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \left(W \pm \sqrt{W^2 - 4E}\right) \\
+ & z_T < 0 ~ \text{solution} & & \text{smallest} ~ |z_T| ~ \text{solution} \\
+z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 - 4E}\right) \\
+ & & & \text{for real} ~ z_T: \quad |W| < 2\sqrt{E} \\
+ & & & \text{for} ~ z_T > 0: \quad W < 0
+\end{align*}
+The uphill electron will always have a turning point (we've neglected the field $E$ turning off at 20 ns), while the downhill electron will only turn if it's energy is below the classical ionization limit $W < 2\sqrt{E}$.
+
+\section{\label{sec:calct} Calculating Turning Time}
+
+We are interested in the turning time of an electron launched in a 1D Coulomb and static field. Our static field is shut off after 20 ns, so the dynamics of electrons who turn before and after 20 ns should broadly be different. Further, electrons that have turning times of $t_T < 10 ~ \text{ns}$ will return to the core before 20 ns and exchange energy with the MW field.
+
+From above, the integral is:
+\begin{align*}
+\text{for} ~ & z < 0: ~ \text{``uphill''} & \text{for} ~ & z > 0: ~ \text{``downhill''} \\
+t_{u,T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W - 1/z + Ez)} \cdot dz & t_{d,T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W + 1/z + Ez)} \cdot dz \\
+z_i & = 6 & z_i & = 6 \\
+z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 - 4E}\right) \\
+ & & & \text{for} ~ W < 2 \sqrt{E}
+\end{align*}
 
 \end{document}
