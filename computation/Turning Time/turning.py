@@ -34,7 +34,7 @@ def read_tidy():
     a tidy DataFrame.
     Returns pd.DataFrame"""
     # specify file
-    directory = ("results")
+    directory = ("turning")
     flist = os.listdir(directory)
     data_m = pd.DataFrame()  # initialize DataFrame
     for i, file in enumerate(flist):
