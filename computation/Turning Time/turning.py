@@ -177,27 +177,67 @@ def field_tt_close():
 
 
 def heatmap():
+    """Produce a heatmap of Energy & Field vs Turnign time.
+    returns the DataFrame holding the data"""
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     data.loc[:, "field"] = data["field"]/au["mVcm"]
     data.loc[:, "W"] = data["W"]/au["GHz"]
     data.loc[:, "t"] = data["t"]/au["ns"]
-    fig, ax = plt.subplots(ncols=2, figsize=(11.5, 8))
+    fig, ax = plt.subplots(ncols=1, figsize=(11.5, 8))
     data.plot(kind='hexbin', x='W', y='field', C='t',
-              reduce_C_function=np.max, vmin=0, vmax=40, colormap="bwr",
-              xlim=(-100, 100), ylim=(0, 125), title="Field Off (20ns)",
-              ax=ax[0])
-    data.plot(kind='hexbin', x='W', y='field', C='t',
-              reduce_C_function=np.max, vmin=0, vmax=20, colormap="bwr",
-              xlim=(-100, 100), ylim=(0,125), title="Return by 20ns (10ns)",
-              ax=ax[1])
-    plt.savefig("heatmap.pdf")
+              reduce_C_function=np.max, vmin=0, vmax=30,
+              colormap="brg",
+              xlim=(-100, 100), ylim=(0, 125), title="Return Time (ns)",
+              ax=ax)
+    #           ax=ax[0])
+    # data.plot(kind='hexbin', x='W', y='field', C='t',
+    #           reduce_C_function=np.max, vmin=0, vmax=20, colormap="bwr",
+    #           xlim=(-100, 100), ylim=(0,125), title="Return by 20ns (10ns)",
+    #           ax=ax[1])
+    # plt.savefig("heatmap.pdf")
     return data
 
 
+def ns_picker(t=20):
+    """Find the field for which a particular launch energy will have a
+    particular return time in ns.
+    Return None"""
+    au = atomic_units()
+    data = pd.read_csv("data_raw.txt", index_col=0)  # read data
+    picked = pd.DataFrame()  # hold selected observations
+    keys = ["Dir", "field"]  # keys to consider
+    vals = unique_values(data, keys)  # get unique values for keys
+    mask = pd.Series([True]*len(data))
+    # mask out Dir
+    key = keys[0]
+    mask_t = (data[key] == vals[key][0])
+    mask = mask & mask_t
+    # mask out a field
+    key = keys[1]
+    for field in vals[key]:
+        print(field/au["mVcm"], "\t", end="\r")
+        mask_t = (data[key] == field)
+        mask_f = mask & mask_t
+        i = np.argmin(np.abs(data[mask_f]["t"] - t*au["ns"]))
+        obs = data[mask_f].loc[i]
+        picked = picked.append(obs)
+    return data, mask_f, picked
+
+
+def main():
+    au = atomic_units()
+    data, mask_f, picked = ns_picker(20)
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    picked.plot(x="W", y="field", kind="line")
+    return
+
 au = atomic_units()
-heatmap()
-# read_tidy()
+# heatmap()
+# data = pd.read_csv("data_raw.txt", index_col=0)
+main()
 # field_tt_full()
-field_tt_close()
+# field_tt_close()
 
