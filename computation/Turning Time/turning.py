@@ -187,57 +187,114 @@ def heatmap():
     fig, ax = plt.subplots(ncols=1, figsize=(11.5, 8))
     data.plot(kind='hexbin', x='W', y='field', C='t',
               reduce_C_function=np.max, vmin=0, vmax=30,
-              colormap="brg",
-              xlim=(-100, 100), ylim=(0, 125), title="Return Time (ns)",
-              ax=ax)
-    #           ax=ax[0])
-    # data.plot(kind='hexbin', x='W', y='field', C='t',
-    #           reduce_C_function=np.max, vmin=0, vmax=20, colormap="bwr",
-    #           xlim=(-100, 100), ylim=(0,125), title="Return by 20ns (10ns)",
-    #           ax=ax[1])
-    # plt.savefig("heatmap.pdf")
+              colormap="cool", ax=ax)
+    picked = pd.read_csv("picked.txt", index_col=0)  # import data
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    # Energy extent of MW transfer for 0 and -20 GHz E0
+    for i in [-62, -42, 22, 42]:
+        ax.axvline(i, color="black", linestyle="dashed", linewidth=2)
+    # fig, ax = plt.subplots()
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["firebrick", "navy"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]) + " ns",
+                          linewidth=3, color=colors[i], ax=ax)
+    ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)",
+           xlim=(-80, 60), ylim=(0, 100), title=r"Return Time $t_R$ (ns)")
     return data
 
 
-def ns_picker(t=20):
-    """Find the field for which a particular launch energy will have a
-    particular return time in ns.
-    Return None"""
+def ns_picker(times=[10,20]):
+    """From data_raw.txt, for each W find the observation where t is closest to
+    provide values. Then interpolate t vs field to guess field for t exactly.
+    Replace t and field the observation and append it to a DataFrame picked.
+    Returns picked, DataFrame"""
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     picked = pd.DataFrame()  # hold selected observations
-    keys = ["Dir", "field"]  # keys to consider
+    keys = ["Dir", "W"]  # keys to consider
     vals = unique_values(data, keys)  # get unique values for keys
     mask = pd.Series([True]*len(data))
     # mask out Dir
     key = keys[0]
     mask_t = (data[key] == vals[key][0])
     mask = mask & mask_t
-    # mask out a field
     key = keys[1]
-    for field in vals[key]:
-        print(field/au["mVcm"], "\t", end="\r")
-        mask_t = (data[key] == field)
+    for W in vals[key]:
+        # mask out W
+        print("\r", W/au["GHz"], "\t", end="\r")
+        mask_t = (data[key] == W)
         mask_f = mask & mask_t
-        i = np.argmin(np.abs(data[mask_f]["t"] - t*au["ns"]))
-        obs = data[mask_f].loc[i]
-        picked = picked.append(obs)
-    return data, mask_f, picked
+        # find index where data["t"] is closest to t
+        for t in times:
+            i = np.argmin(np.abs(data[mask_f]["t"] - t*au["ns"]))
+            obs = data[mask_f].loc[i]
+            # interpolate to find E(W=Wi, t)
+            data_int = pd.DataFrame()
+            data_int[["t", "field"]] = data[mask_f][["t", "field"]]
+            data_int.sort_values(by="t", inplace=True)
+            x = t*au["ns"]
+            y = np.interp(x, xp=data_int["t"], fp=data_int["field"],
+                          left=np.NaN, right=np.NaN)
+            obs["field"] = y
+            obs["t"] = x
+            picked = picked.append(obs)
+    picked.reset_index(drop=True, inplace=True)
+    picked.to_csv("picked.txt")
+    return picked
+
+
+def add_picked(fig, ax):
+    au = atomic_units()
+    picked = pd.read_csv("picked.txt", index_col=0)  # import data
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    # fig, ax = plt.subplots()
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["C0", "C1", "C2", "C3"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]),
+                          color=colors[i], ax=ax)
+    return fig, ax
+
 
 
 def main():
     au = atomic_units()
-    data, mask_f, picked = ns_picker(20)
+    picked = pd.read_csv("picked.txt", index_col=0)  # import data
     picked.sort_values(by=["W"])
     picked["W"] = picked["W"]/au["GHz"]
     picked["field"] = picked["field"]/au["mVcm"]
-    picked.plot(x="W", y="field", kind="line")
-    return
+    fig, ax = plt.subplots()
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["C0", "C1", "C2", "C3"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]),
+                          color=colors[i], ax=ax)
+    ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)")
+    return picked
 
 au = atomic_units()
-# heatmap()
 # data = pd.read_csv("data_raw.txt", index_col=0)
-main()
-# field_tt_full()
-# field_tt_close()
-
+# ns_picker()
+# picked = main()
+# fig, ax = plt.subplots()
+# fig, ax = add_picked(fig, ax)
+# ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
+#        ylabel="Field (mV/cm)")
+heatmap()
+    
