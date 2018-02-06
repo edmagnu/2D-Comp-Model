@@ -91,11 +91,11 @@ W & = \pm \frac{1}{z_i} - Ez_i + \frac{l^2}{2z_i^2} \\
 0 & = Ez_i^3 + Wz_i^2 \pm z_i - l^2/2 \\
 & \text{The full cubic could be solved, but for our purposes} \\
  & |E| < 1000 ~ \text{mV/cm} ~ \text{and} ~ |W| < 1000 ~ \text{GHz} ~ \text{and} ~ |z_i| < 100. \\
- & \text{So} ~ \frac{l^2}{2z_i^2} >> Ez_i ~ , ~ W \\
+ & \text{So} ~ |\frac{l^2}{2z_i^2}| >> |Ez_i| ~ , ~ |W| \\
 0 & = \left(\frac{l^2}{2z_i^2} - Ez_i - W\right) \cdot z_i \pm 1 \\
-z_i & \approx l^2/2
+z_i & \approx \pm l^2/2
 \end{align*}
-For $l = 3$, $z_i = 6$. Solving the full cubic with $|E| < 1000 ~ \text{mV/cm}$ and $|W| < 1000 ~ \text{GHz}$ shows this is true to 1 part in 100. Integrating shows the time an electron takes to travel from $z = 0$ to $z = 6$ is negligible for these same conditions.
+For $l = 3$, $z_i = \pm 6$. Solving the full cubic with $|E| < 1000 ~ \text{mV/cm}$ and $|W| < 1000 ~ \text{GHz}$ shows this is true to 1 part in 100. Integrating shows the time an electron takes to travel from $z = 0$ to $z = \pm 6$ is negligible for these same conditions.
 \begin{align*}
 \Delta t & = \int_0^6 1/\sqrt{2(W + 1/z + Ez)} \cdot dz \\
  & \approx 4\sqrt{3} \\
@@ -125,9 +125,26 @@ From above, the integral is:
 \begin{align*}
 \text{for} ~ & z < 0: ~ \text{``uphill''} & \text{for} ~ & z > 0: ~ \text{``downhill''} \\
 t_{u,T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W - 1/z + Ez)} \cdot dz & t_{d,T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W + 1/z + Ez)} \cdot dz \\
-z_i & = 6 & z_i & = 6 \\
+z_i & = -6 & z_i & = 6 \\
 z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 - 4E}\right) \\
  & & & \text{for} ~ W < 2 \sqrt{E}
 \end{align*}
+
+\section{\label{sec:calcE0} Calculating Binding Time}
+
+At the turning time, the electron's radial motion has stopped, and if the field turns off the electron will be left in a bound state. For uphill electrons with $W > 0$, there is a window around $z_T$ where the electron is not stopped, but has slowed enough that turning off the field will leave it bound.
+\begin{align*}
+0 & = W + E z_B \\
+z_B & = -W/E
+\end{align*}
+The travel time $t_B$ to reach $z_B$ can be calculated in the same manner as $t_T$.
+\begin{align*}
+\text{for} ~ & z < 0: ~ \text{``uphill''} \\
+t_{u,B} & = \int_{z_i}^{z_B} 1/\sqrt{2(W - 1/z + Ez)} \cdot dz \\
+z_i & = -6 \\
+z_B & = -W/E \\
+ & \text{for} ~ W > 0
+\end{align*}
+
 
 \end{document}
