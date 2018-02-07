@@ -29,7 +29,7 @@ def read_metadata(fname):
     return meta
 
 
-def read_tidy():
+def read_tidy_turning():
     """Read in every result data file with metadata. Add every file's data into
     a tidy DataFrame.
     Returns pd.DataFrame"""
@@ -52,6 +52,37 @@ def read_tidy():
         # data["field"] = pd.Series([meta["field"]]*len(data), dtype=float)
         # organize data
         data = data[["Filename", "Dir", "zi", "W", "field", "zt", "t", "argt"]]
+        data_m = data_m.append(data)  # append to master DataFrame
+    data_m.sort_values(by=["field", "W"], inplace=True)
+    data_m.reset_index(drop=True, inplace=True)
+    data_m.to_csv("data_raw.txt")
+    return data_m
+
+
+def read_tidy_binding():
+    """Read in every result data file with metadata. Add every file's data into
+    a tidy DataFrame.
+    Returns pd.DataFrame"""
+    # specify file
+    directory = ("binding")
+    flist = os.listdir(directory)
+    data_m = pd.DataFrame()  # initialize DataFrame
+    for i, file in enumerate(flist):
+        print("{0} / {1} \t".format(i+1, len(flist)), end="\r")
+        # print(i, end="\r")
+        fname = directory + "\\" + file  # build file
+        # print(fname)
+        # load metadata and data
+        meta = read_metadata(fname)
+        data = pd.read_csv(fname, sep="\t", comment="#", index_col=False)
+        # add in metadata
+        data["Filename"] = pd.Series([fname]*len(data), dtype=str)
+        data["Dir"] = pd.Series([meta["Dir"]]*len(data), dtype=float)
+        data["zi"] = pd.Series([meta["zi"]]*len(data), dtype=float)
+        # data["field"] = pd.Series([meta["field"]]*len(data), dtype=float)
+        # organize data
+        data = data[["Filename", "Dir", "zi", "W", "field", "zb", "tb", "argtb",
+                     "zt", "tt", "argtt"]]
         data_m = data_m.append(data)  # append to master DataFrame
     data_m.sort_values(by=["field", "W"], inplace=True)
     data_m.reset_index(drop=True, inplace=True)
@@ -250,26 +281,7 @@ def ns_picker(times=[10,20]):
     return picked
 
 
-def add_picked(fig, ax):
-    au = atomic_units()
-    picked = pd.read_csv("picked.txt", index_col=0)  # import data
-    picked.sort_values(by=["W"])
-    picked["W"] = picked["W"]/au["GHz"]
-    picked["field"] = picked["field"]/au["mVcm"]
-    # fig, ax = plt.subplots()
-    keys = ["t"]
-    vals = unique_values(picked, keys)
-    colors = ["C0", "C1", "C2", "C3"]
-    for i, t in enumerate(vals["t"]):
-        mask = (picked["t"] == t)
-        picked[mask].plot(x="W", y="field", kind="line",
-                          label=r"$t_R$ = " + str(t/au["ns"]),
-                          color=colors[i], ax=ax)
-    return fig, ax
-
-
-
-def main():
+def picked_plot():
     au = atomic_units()
     picked = pd.read_csv("picked.txt", index_col=0)  # import data
     picked.sort_values(by=["W"])
@@ -291,10 +303,4 @@ def main():
 au = atomic_units()
 # data = pd.read_csv("data_raw.txt", index_col=0)
 # ns_picker()
-# picked = main()
-# fig, ax = plt.subplots()
-# fig, ax = add_picked(fig, ax)
-# ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
-#        ylabel="Field (mV/cm)")
-heatmap()
-    
+# heatmap()
