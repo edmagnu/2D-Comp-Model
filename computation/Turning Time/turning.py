@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 def atomic_units():
-    """Return a dictionary of atomic units"""
+    """Return a dictionary of atomic units, ["GHz"], ["mVcm"], and ["ns"]"""
     au = {"GHz": 1.51983e-7, "mVcm": 1.94469e-13, "ns": 4.13414e7}
     return au
 
@@ -32,7 +32,8 @@ def read_metadata(fname):
 def read_tidy_turning():
     """Read in every result data file with metadata. Add every file's data into
     a tidy DataFrame.
-    Returns pd.DataFrame"""
+    Returns pd.DataFrame
+    """
     # specify file
     directory = ("turning")
     flist = os.listdir(directory)
@@ -62,7 +63,8 @@ def read_tidy_turning():
 def read_tidy_binding():
     """Read in every result data file with metadata. Add every file's data into
     a tidy DataFrame.
-    Returns pd.DataFrame"""
+    Returns pd.DataFrame
+    """
     # specify file
     directory = ("binding")
     flist = os.listdir(directory)
@@ -92,7 +94,8 @@ def read_tidy_binding():
 
 def unique_values(data, keys):
     """Produce a dictionary of unique values for "keys" in "data"
-    returns dict: vals"""
+    returns dict: vals
+    """
     vals = {}
     for key in keys:
         vals[key] = np.sort(data[key].unique())
@@ -100,7 +103,8 @@ def unique_values(data, keys):
 
 def field_tt_figure(fig, ax):
     """Plot turnign times vs orbit energy for various fields
-    Returns fig, ax"""
+    Returns fig, ax
+    """
     au = atomic_units()  # atomic units
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     # build unique values
@@ -137,7 +141,8 @@ def field_tt_figure(fig, ax):
 
 def field_tt_full():
     """Full plot with labels using field_tt_figure()
-    Returns None"""
+    Returns None
+    """
     fig, ax = plt.subplots()
     labels = ["10 mV/cm", "25 mV/cm", "50 mV/cm", "100 mV/cm", "200 mV/cm"]
     fig, ax = field_tt_figure(fig, ax)
@@ -160,7 +165,8 @@ def field_tt_full():
 def field_tt_close():
     """Close plot at range accessible do to MW energy exchange, with labels,
     using field_tt_figure()
-    Returns None"""
+    Returns None
+    """
     fig, ax = plt.subplots()
     ax.axvline(-62, color="grey", linestyle="dashed")
     ax.axvline(-42, color="grey", linestyle="dashed")
@@ -209,7 +215,8 @@ def field_tt_close():
 
 def heatmap():
     """Produce a heatmap of Energy & Field vs Turnign time.
-    returns the DataFrame holding the data"""
+    returns the DataFrame holding the data
+    """
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     data.loc[:, "field"] = data["field"]/au["mVcm"]
@@ -245,7 +252,8 @@ def ns_picker(times=[10,20]):
     """From data_raw.txt, for each W find the observation where t is closest to
     provide values. Then interpolate t vs field to guess field for t exactly.
     Replace t and field the observation and append it to a DataFrame picked.
-    Returns picked, DataFrame"""
+    Returns picked, DataFrame
+    """
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     picked = pd.DataFrame()  # hold selected observations
@@ -282,6 +290,11 @@ def ns_picker(times=[10,20]):
 
 
 def picked_plot():
+    """Read DataFrame from "picked.txt" to plot E(W) where
+    t_T = <some specific time>. Each unique time (up to 4) is automatically
+    plotted with a unique color and labeled.
+    Returns DataFrame picked
+    """
     au = atomic_units()
     picked = pd.read_csv("picked.txt", index_col=0)  # import data
     picked.sort_values(by=["W"])
@@ -300,7 +313,106 @@ def picked_plot():
            ylabel="Field (mV/cm)")
     return picked
 
-au = atomic_units()
-# data = pd.read_csv("data_raw.txt", index_col=0)
-# ns_picker()
-# heatmap()
+
+def field_picker(data, picks = [["tt", 20]]):
+    au = atomic_units()
+    # data = pd.read_csv("data_raw.txt", index_col=0)  # read data
+    picked = pd.DataFrame()  # hold selected observations
+    keys = ["Dir", "W"]  # keys to consider
+    vals = unique_values(data, keys)  # get unique values for keys
+    mask = pd.Series([True]*len(data))
+    # mask out Dir
+    key = keys[0]
+    mask_t = (data[key] == vals[key][0])
+    mask = mask & mask_t
+    key = "W"
+    for W in vals[key]:
+        # mask out W
+        print("\r W = ", np.round(W/au["GHz"],2), "\t", end="\r")
+        mask_t = (data[key] == W)
+        mask_w = mask & mask_t
+        # find index where data["t"] is closest to t
+        for pick in picks:
+            kind = pick[0]
+            t = pick[1]
+            # kind = list(picks.keys())[0]
+            mask_t = np.logical_not(np.isnan(data[kind]))
+            mask_k = mask_w & mask_t
+            # print("mask length ", sum(mask_k))
+            if np.sum(mask_k) != 0:
+                i = np.argmin(np.abs(data[mask_k][kind] - t*au["ns"]))
+                # print("index = ", i)
+                obs = data[mask_k].loc[i]
+                # interpolate to find E(W=Wi, t)
+                data_int = pd.DataFrame()
+                data_int[[kind, "field"]] = data[mask_k][[kind, "field"]]
+                data_int.sort_values(by=kind, inplace=True)
+                x = t*au["ns"]
+                y = np.interp(x, xp=data_int[kind], fp=data_int["field"],
+                              left=np.NaN, right=np.NaN)
+                # "correct" observation data
+                obs["field"] = y
+                obs["t"] = x
+                obs["kind"] = kind + "=" + str(t)
+                obs = obs[["Filename", "Dir", "zi", "kind", "W", "field"]]
+                picked = picked.append(obs)
+    picked.reset_index(drop=True, inplace=True)
+    picked = picked[["Filename", "Dir", "zi", "kind", "W", "field"]]
+    picked.to_csv("picked_f.txt")
+    return picked
+
+
+def goldylocks():
+    au = atomic_units()
+    data = read_tidy_binding()
+    # convert to lab units
+    data["field"] = data["field"]/au["mVcm"]
+    data["W"] = data["W"]/au["GHz"]
+    data["tt"] = data["tt"]/au["ns"]
+    data["tb"] = data["tb"]/au["ns"]
+    data["tplus"] = 2*data["tt"] - data["tb"]  # upper limit on bound energy
+    # if tb < 20ns < tplus, electron is bound when field is turned off
+    data["gdlx"] = (data["tplus"] > 20) & (data["tb"] < 20)
+    # plot goldylocks zone
+    fig, ax = plt.subplots()
+    # data.plot.hexbin(x="W", y="field", C="gdlx", cmap="Greens", vmin=0, vmax=1,
+    #                  ax = ax)
+    data[data["gdlx"]].plot.scatter(x="W", y="field", color="green", ax=ax)
+    # picked plot
+    picked = pd.read_csv("picked.txt", index_col=0)
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["C0", "C1", "C2", "C3"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]),
+                          color=colors[i], ax=ax)
+    # marker lines
+    ax.axvline(0, color="black")
+    ax.axhline(0, color="black")
+    ax.set(xlim=(-20,40), ylim=(-1,21))
+    return data
+
+
+def main():
+    au = atomic_units()
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data["tplus"] = 2*data["tt"] - data["tb"]
+    # picks = {"tb": 20}
+    picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
+    picked = field_picker(data, picks)
+    # picked = pd.read_csv("picked_f.txt", index_col=0)
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    fig, ax = plt.subplots()
+    for kind in picked["kind"].unique():
+        mask = (picked["kind"]==kind)
+        picked[mask].plot(x="W", y="field", label=kind, ax=ax)
+    return picked
+
+
+picked = main()
