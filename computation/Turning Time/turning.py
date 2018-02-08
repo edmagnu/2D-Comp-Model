@@ -400,18 +400,100 @@ def goldylocks():
 
 def main():
     au = atomic_units()
+    # data = read_tidy_binding()
     data = pd.read_csv("data_raw.txt", index_col=0)
+    # data = pd.read_csv("data_raw.txt", index_col=0)
     data["tplus"] = 2*data["tt"] - data["tb"]
     # picks = {"tb": 20}
-    picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
-    picked = field_picker(data, picks)
-    # picked = pd.read_csv("picked_f.txt", index_col=0)
+    # picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
+    # picked = field_picker(data, picks)
+    picked = pd.read_csv("picked_f.txt", index_col=0)
     picked["W"] = picked["W"]/au["GHz"]
     picked["field"] = picked["field"]/au["mVcm"]
     fig, ax = plt.subplots()
-    for kind in picked["kind"].unique():
+    # ----------
+    # fill between tb & tplus
+    mask = (picked["kind"]=="tb=20")
+    mask = mask & np.logical_not(np.isnan(picked["field"]))
+    # print("tb=20 \t min \t", min(picked[mask]["W"]))
+    mintb = min(picked[mask]["W"])
+    # print("tb=20 \t max \t", max(picked[mask]["W"]))
+    maxtb = max(picked[mask]["W"])
+    mask = (picked["kind"]=="tplus=20")
+    mask = mask & np.logical_not(np.isnan(picked["field"]))
+    # print("t+=20 \t min \t", min(picked[mask]["W"]))
+    mintp = min(picked[mask]["W"])
+    # print("t+=20 \t max \t", max(picked[mask]["W"]))
+    maxtp = max(picked[mask]["W"])
+    minw = max(mintb, mintp)
+    maxw = min(maxtb, maxtp)
+    masktb = ((picked["kind"]=="tb=20") & (picked["W"] <= maxw) &
+              (picked["W"] >= minw))
+    masktp = ((picked["kind"]=="tplus=20") & (picked["W"] <= maxw) &
+              (picked["W"] >= minw))
+    # print(picked[masktp])
+    # print(picked[masktb])
+    ax.fill_between(picked[masktb]["W"], picked[masktb]["field"],
+                    picked[masktp]["field"], color="C2")
+    # ----------
+    # fill below tb
+    mask = (picked["kind"]=="tb=20")
+    ax.fill_between(picked[mask]["W"], picked[mask]["field"], 0, color="C3")
+    # ----------
+    # fill below tt=20 and W<=0
+    mask = (picked["kind"] == "tt=10") & (picked["W"] <= minw)
+    ax.fill_between(picked[mask]["W"], picked[mask]["field"], 0,
+                    color="C2")
+    # ----------
+    # fill between tt=10 and tplus
+    mask_nan = np.logical_not(np.isnan(picked["field"]))
+    mask_tt10 = mask_nan & (picked["kind"]=="tt=10")
+    mask_tplus = mask_nan & (picked["kind"]=="tplus=20")
+    intrp = pd.DataFrame()
+    intrp["x"] = pd.Series(
+            np.intersect1d(picked[mask_tt10]["W"], picked[mask_tplus]["W"]))
+    intrp["tplus=20"] = np.interp(intrp["x"], picked[mask_tplus]["W"],
+          picked[mask_tplus]["field"])
+    intrp["tt=10"] = np.interp(intrp["x"], picked[mask_tt10]["W"],
+          picked[mask_tt10]["field"])
+    ax.fill_between(intrp["x"], intrp["tt=10"], intrp["tplus=20"], color="C3")
+    # ----------
+    # fill above tt=10 and to the left of lowest energy of tt=10
+    mask = np.logical_not(np.isnan(picked["field"]))
+    mask = mask & (picked["kind"]=="tt=10")
+    mask_u = mask & (picked["W"]<=0)
+    ax.fill_between(picked[mask_u]["W"], 100, picked[mask_u]["field"],
+                    color="C9")
+    mask_o = mask & (picked["W"]>=0)
+    ax.fill_between(picked[mask_o]["W"], 100, picked[mask_o]["field"],
+                    color="C8")
+    min_tt10 = min(picked[mask]["W"])
+    ax.fill_between([-100,min_tt10], 100, 0, color="C9")
+    # ----------
+    # plot lines
+    colors = ["C2", "k", "k", "k", "k"]
+    for i, kind in enumerate(picked["kind"].unique()):
         mask = (picked["kind"]==kind)
-        picked[mask].plot(x="W", y="field", label=kind, ax=ax)
+        # print(kind + "\t" + str(sum(mask)))
+        test = mask & np.logical_not(np.isnan(picked["field"]))
+        print(kind + "\t" + str(sum(test)))
+        picked[mask].plot(x="W", y="field", c=colors[i],
+                          linewidth=2, ax=ax)
+    # axeslines
+    ax.axvline(0, color="k", linewidth=1)
+    ax.axhline(0, color="k", linewidth=1)
+    # make it pretty
+    ax.set(xlabel=r"$E_{orbit} = E_0 + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)", title="Uphill Electrons", xlim=(-100,100),
+           ylim=(0,100))
+    ax.legend().remove()
+    # text boxes
+    props = dict(boxstyle='round', facecolor="white", alpha=1.0)
+    ax.text(-95, 95, "(a)", bbox=props)
+    ax.text(5, 95, "(b)", bbox=props)
+    ax.text(90, 55, "(c)", bbox=props)
+    ax.text(90, 10, "(c)", bbox=props)
+    ax.text(90, 32, "(d)", bbox=props)
     return picked
 
 
