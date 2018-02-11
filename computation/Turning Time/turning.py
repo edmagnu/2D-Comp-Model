@@ -11,7 +11,7 @@ import matplotlib.pyplot as plt
 
 
 def atomic_units():
-    """Return a dictionary of atomic units"""
+    """Return a dictionary of atomic units, ["GHz"], ["mVcm"], and ["ns"]"""
     au = {"GHz": 1.51983e-7, "mVcm": 1.94469e-13, "ns": 4.13414e7}
     return au
 
@@ -29,12 +29,13 @@ def read_metadata(fname):
     return meta
 
 
-def read_tidy():
+def read_tidy_turning():
     """Read in every result data file with metadata. Add every file's data into
     a tidy DataFrame.
-    Returns pd.DataFrame"""
+    Returns pd.DataFrame
+    """
     # specify file
-    directory = ("results")
+    directory = ("turning")
     flist = os.listdir(directory)
     data_m = pd.DataFrame()  # initialize DataFrame
     for i, file in enumerate(flist):
@@ -59,9 +60,42 @@ def read_tidy():
     return data_m
 
 
+def read_tidy_binding():
+    """Read in every result data file with metadata. Add every file's data into
+    a tidy DataFrame.
+    Returns pd.DataFrame
+    """
+    # specify file
+    directory = ("binding")
+    flist = os.listdir(directory)
+    data_m = pd.DataFrame()  # initialize DataFrame
+    for i, file in enumerate(flist):
+        print("{0} / {1} \t".format(i+1, len(flist)), end="\r")
+        # print(i, end="\r")
+        fname = directory + "\\" + file  # build file
+        # print(fname)
+        # load metadata and data
+        meta = read_metadata(fname)
+        data = pd.read_csv(fname, sep="\t", comment="#", index_col=False)
+        # add in metadata
+        data["Filename"] = pd.Series([fname]*len(data), dtype=str)
+        data["Dir"] = pd.Series([meta["Dir"]]*len(data), dtype=float)
+        data["zi"] = pd.Series([meta["zi"]]*len(data), dtype=float)
+        # data["field"] = pd.Series([meta["field"]]*len(data), dtype=float)
+        # organize data
+        data = data[["Filename", "Dir", "zi", "W", "field", "zb", "tb",
+                     "argtb", "zt", "tt", "argtt"]]
+        data_m = data_m.append(data)  # append to master DataFrame
+    data_m.sort_values(by=["field", "W"], inplace=True)
+    data_m.reset_index(drop=True, inplace=True)
+    # data_m.to_csv("data_raw.txt")
+    return data_m
+
+
 def unique_values(data, keys):
     """Produce a dictionary of unique values for "keys" in "data"
-    returns dict: vals"""
+    returns dict: vals
+    """
     vals = {}
     for key in keys:
         vals[key] = np.sort(data[key].unique())
@@ -69,7 +103,8 @@ def unique_values(data, keys):
 
 def field_tt_figure(fig, ax):
     """Plot turnign times vs orbit energy for various fields
-    Returns fig, ax"""
+    Returns fig, ax
+    """
     au = atomic_units()  # atomic units
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     # build unique values
@@ -106,7 +141,8 @@ def field_tt_figure(fig, ax):
 
 def field_tt_full():
     """Full plot with labels using field_tt_figure()
-    Returns None"""
+    Returns None
+    """
     fig, ax = plt.subplots()
     labels = ["10 mV/cm", "25 mV/cm", "50 mV/cm", "100 mV/cm", "200 mV/cm"]
     fig, ax = field_tt_figure(fig, ax)
@@ -129,7 +165,8 @@ def field_tt_full():
 def field_tt_close():
     """Close plot at range accessible do to MW energy exchange, with labels,
     using field_tt_figure()
-    Returns None"""
+    Returns None
+    """
     fig, ax = plt.subplots()
     ax.axvline(-62, color="grey", linestyle="dashed")
     ax.axvline(-42, color="grey", linestyle="dashed")
@@ -178,7 +215,8 @@ def field_tt_close():
 
 def heatmap():
     """Produce a heatmap of Energy & Field vs Turnign time.
-    returns the DataFrame holding the data"""
+    returns the DataFrame holding the data
+    """
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     data.loc[:, "field"] = data["field"]/au["mVcm"]
@@ -187,57 +225,425 @@ def heatmap():
     fig, ax = plt.subplots(ncols=1, figsize=(11.5, 8))
     data.plot(kind='hexbin', x='W', y='field', C='t',
               reduce_C_function=np.max, vmin=0, vmax=30,
-              colormap="brg",
-              xlim=(-100, 100), ylim=(0, 125), title="Return Time (ns)",
-              ax=ax)
-    #           ax=ax[0])
-    # data.plot(kind='hexbin', x='W', y='field', C='t',
-    #           reduce_C_function=np.max, vmin=0, vmax=20, colormap="bwr",
-    #           xlim=(-100, 100), ylim=(0,125), title="Return by 20ns (10ns)",
-    #           ax=ax[1])
-    # plt.savefig("heatmap.pdf")
+              colormap="cool", ax=ax)
+    picked = pd.read_csv("picked.txt", index_col=0)  # import data
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    # Energy extent of MW transfer for 0 and -20 GHz E0
+    for i in [-62, -42, 22, 42]:
+        ax.axvline(i, color="black", linestyle="dashed", linewidth=2)
+    # fig, ax = plt.subplots()
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["firebrick", "navy"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]) + " ns",
+                          linewidth=3, color=colors[i], ax=ax)
+    ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)",
+           xlim=(-80, 60), ylim=(0, 100), title=r"Return Time $t_R$ (ns)")
     return data
 
 
-def ns_picker(t=20):
-    """Find the field for which a particular launch energy will have a
-    particular return time in ns.
-    Return None"""
+def ns_picker(times=[10,20]):
+    """From data_raw.txt, for each W find the observation where t is closest to
+    provide values. Then interpolate t vs field to guess field for t exactly.
+    Replace t and field the observation and append it to a DataFrame picked.
+    Returns picked, DataFrame
+    """
     au = atomic_units()
     data = pd.read_csv("data_raw.txt", index_col=0)  # read data
     picked = pd.DataFrame()  # hold selected observations
-    keys = ["Dir", "field"]  # keys to consider
+    keys = ["Dir", "W"]  # keys to consider
     vals = unique_values(data, keys)  # get unique values for keys
     mask = pd.Series([True]*len(data))
     # mask out Dir
     key = keys[0]
     mask_t = (data[key] == vals[key][0])
     mask = mask & mask_t
-    # mask out a field
     key = keys[1]
-    for field in vals[key]:
-        print(field/au["mVcm"], "\t", end="\r")
-        mask_t = (data[key] == field)
+    for W in vals[key]:
+        # mask out W
+        print("\r", W/au["GHz"], "\t", end="\r")
+        mask_t = (data[key] == W)
         mask_f = mask & mask_t
-        i = np.argmin(np.abs(data[mask_f]["t"] - t*au["ns"]))
-        obs = data[mask_f].loc[i]
-        picked = picked.append(obs)
-    return data, mask_f, picked
+        # find index where data["t"] is closest to t
+        for t in times:
+            i = np.argmin(np.abs(data[mask_f]["t"] - t*au["ns"]))
+            obs = data[mask_f].loc[i]
+            # interpolate to find E(W=Wi, t)
+            data_int = pd.DataFrame()
+            data_int[["t", "field"]] = data[mask_f][["t", "field"]]
+            data_int.sort_values(by="t", inplace=True)
+            x = t*au["ns"]
+            y = np.interp(x, xp=data_int["t"], fp=data_int["field"],
+                          left=np.NaN, right=np.NaN)
+            obs["field"] = y
+            obs["t"] = x
+            picked = picked.append(obs)
+    picked.reset_index(drop=True, inplace=True)
+    picked.to_csv("picked.txt")
+    return picked
 
 
-def main():
+def picked_plot():
+    """Read DataFrame from "picked.txt" to plot E(W) where
+    t_T = <some specific time>. Each unique time (up to 4) is automatically
+    plotted with a unique color and labeled.
+    Returns DataFrame picked
+    """
     au = atomic_units()
-    data, mask_f, picked = ns_picker(20)
+    picked = pd.read_csv("picked.txt", index_col=0)  # import data
     picked.sort_values(by=["W"])
     picked["W"] = picked["W"]/au["GHz"]
     picked["field"] = picked["field"]/au["mVcm"]
-    picked.plot(x="W", y="field", kind="line")
+    fig, ax = plt.subplots()
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["C0", "C1", "C2", "C3"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]),
+                          color=colors[i], ax=ax)
+    ax.set(xlabel=r"$E_{orbit} = W + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)")
+    return picked
+
+
+def field_picker(data, picks = [["tt", 20]]):
+    au = atomic_units()
+    # data = pd.read_csv("data_raw.txt", index_col=0)  # read data
+    picked = pd.DataFrame()  # hold selected observations
+    keys = ["Dir", "W"]  # keys to consider
+    vals = unique_values(data, keys)  # get unique values for keys
+    mask = pd.Series([True]*len(data))
+    # mask out Dir
+    key = keys[0]
+    mask_t = (data[key] == vals[key][0])
+    mask = mask & mask_t
+    key = "W"
+    for W in vals[key]:
+        # mask out W
+        print("\r W = ", np.round(W/au["GHz"],2), "\t", end="\r")
+        mask_t = (data[key] == W)
+        mask_w = mask & mask_t
+        # find index where data["t"] is closest to t
+        for pick in picks:
+            kind = pick[0]
+            t = pick[1]
+            # kind = list(picks.keys())[0]
+            mask_t = np.logical_not(np.isnan(data[kind]))
+            mask_k = mask_w & mask_t
+            # print("mask length ", sum(mask_k))
+            if np.sum(mask_k) != 0:
+                i = np.argmin(np.abs(data[mask_k][kind] - t*au["ns"]))
+                # print("index = ", i)
+                obs = data[mask_k].loc[i]
+                # interpolate to find E(W=Wi, t)
+                data_int = pd.DataFrame()
+                data_int[[kind, "field"]] = data[mask_k][[kind, "field"]]
+                data_int.sort_values(by=kind, inplace=True)
+                x = t*au["ns"]
+                y = np.interp(x, xp=data_int[kind], fp=data_int["field"],
+                              left=np.NaN, right=np.NaN)
+                # "correct" observation data
+                obs["field"] = y
+                obs["t"] = x
+                obs["kind"] = kind + "=" + str(t)
+                obs = obs[["Filename", "Dir", "zi", "kind", "W", "field"]]
+                picked = picked.append(obs)
+    print()
+    picked.reset_index(drop=True, inplace=True)
+    picked = picked[["Filename", "Dir", "zi", "kind", "W", "field"]]
+    # picked.to_csv("picked_f.txt")
+    return picked
+
+
+def build_test_data():
+    # build data
+    directory = ("test")
+    flist = os.listdir(directory)
+    data_m = pd.DataFrame()  # initialize DataFrame
+    for i, file in enumerate(flist):
+        print("{0} / {1} \t".format(i+1, len(flist)), end="\r")
+        # print(i, end="\r")
+        fname = directory + "\\" + file  # build file
+        # print(fname)
+        # load metadata and data
+        meta = read_metadata(fname)
+        data = pd.read_csv(fname, sep="\t", comment="#", index_col=False)
+        # add in metadata
+        data["Filename"] = pd.Series([fname]*len(data), dtype=str)
+        data["Dir"] = pd.Series([meta["Dir"]]*len(data), dtype=float)
+        data["zi"] = pd.Series([meta["zi"]]*len(data), dtype=float)
+        # data["field"] = pd.Series([meta["field"]]*len(data), dtype=float)
+        # organize data
+        data = data[["Filename", "Dir", "zi", "W", "field", "zb", "tb", "argtb",
+                     "zt", "tt", "argtt"]]
+        data_m = data_m.append(data)  # append to master DataFrame
+    data_m.sort_values(by=["field", "W"], inplace=True)
+    data_m.reset_index(drop=True, inplace=True)
+    data_m.to_csv("data_test.txt")
+    return data_m
+
+
+def build_test_picked(data, picks):
+    picked = field_picker(data, picks)
+    picked.to_csv("picked_test.txt")
+    return picked
+
+
+def downhill_test():
+    au = atomic_units()
+    data = pd.read_csv("data_test.txt", index_col=0)
+    picked = pd.read_csv("picked_test.txt", index_col=0)
+    # pick data
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    # plots
+    fig, ax = plt.subplots()
+    # tt = 10
+    mask = (picked["kind"]=="tt=10") & (picked["Dir"] == 1.0)
+    picked[mask].plot(x="W", y="field", ax=ax, label=r"$t_T$ = 10 ns")
+    # tb = 20
+    mask = (picked["kind"]=="tb=20") & (picked["Dir"] == 1.0)
+    picked[mask].plot(x="W", y="field", ax=ax, label=r"$t_B$ = 20 ns")
+    # ionization limit
+    fields = np.linspace(0, 20, num=201)*au["mVcm"]
+    ils = -2*np.sqrt(fields)
+    ax.plot(ils/au["GHz"], fields/au["mVcm"], label="DIL")
+    # lines
+    ax.axhline(0, color="black")
+    # pretty
+    ax.set(xlim=(-20,0))
+    ax.legend()
+    return data, picked
+
+
+def goldylocks():
+    au = atomic_units()
+    data = read_tidy_binding()
+    # convert to lab units
+    data["field"] = data["field"]/au["mVcm"]
+    data["W"] = data["W"]/au["GHz"]
+    data["tt"] = data["tt"]/au["ns"]
+    data["tb"] = data["tb"]/au["ns"]
+    data["tplus"] = 2*data["tt"] - data["tb"]  # upper limit on bound energy
+    # if tb < 20ns < tplus, electron is bound when field is turned off
+    data["gdlx"] = (data["tplus"] > 20) & (data["tb"] < 20)
+    # plot goldylocks zone
+    fig, ax = plt.subplots()
+    # data.plot.hexbin(x="W", y="field", C="gdlx", cmap="Greens", vmin=0, vmax=1,
+    #                  ax = ax)
+    data[data["gdlx"]].plot.scatter(x="W", y="field", color="green", ax=ax)
+    # picked plot
+    picked = pd.read_csv("picked.txt", index_col=0)
+    picked.sort_values(by=["W"])
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    keys = ["t"]
+    vals = unique_values(picked, keys)
+    colors = ["C0", "C1", "C2", "C3"]
+    for i, t in enumerate(vals["t"]):
+        mask = (picked["t"] == t)
+        picked[mask].plot(x="W", y="field", kind="line",
+                          label=r"$t_R$ = " + str(t/au["ns"]),
+                          color=colors[i], ax=ax)
+    # marker lines
+    ax.axvline(0, color="black")
+    ax.axhline(0, color="black")
+    ax.set(xlim=(-20,40), ylim=(-1,21))
+    return data
+
+
+def uphill_figure():
+    au = atomic_units()
+    # data = read_tidy_binding()
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data = data[(data["Dir"] == -1)]
+    # data = pd.read_csv("data_raw.txt", index_col=0)
+    # data["tplus"] = 2*data["tt"] - data["tb"]
+    # picks = {"tb": 20}
+    # picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
+    # picked = field_picker(data, picks)
+    picked = pd.read_csv("picked_f.txt", index_col=0)
+    picked = picked[(picked["Dir"] == -1)]
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    fig, ax = plt.subplots()
+    # ----------
+    # fill between tb & tplus
+    mask = (picked["kind"]=="tb=20")
+    mask = mask & np.logical_not(np.isnan(picked["field"]))
+    # print("tb=20 \t min \t", min(picked[mask]["W"]))
+    mintb = min(picked[mask]["W"])
+    # print("tb=20 \t max \t", max(picked[mask]["W"]))
+    maxtb = max(picked[mask]["W"])
+    mask = (picked["kind"]=="tplus=20")
+    mask = mask & np.logical_not(np.isnan(picked["field"]))
+    # print("t+=20 \t min \t", min(picked[mask]["W"]))
+    mintp = min(picked[mask]["W"])
+    # print("t+=20 \t max \t", max(picked[mask]["W"]))
+    maxtp = max(picked[mask]["W"])
+    minw = max(mintb, mintp)
+    maxw = min(maxtb, maxtp)
+    masktb = ((picked["kind"]=="tb=20") & (picked["W"] <= maxw) &
+              (picked["W"] >= minw))
+    masktp = ((picked["kind"]=="tplus=20") & (picked["W"] <= maxw) &
+              (picked["W"] >= minw))
+    # print(picked[masktp])
+    # print(picked[masktb])
+    ax.fill_between(picked[masktb]["W"], picked[masktb]["field"],
+                    picked[masktp]["field"], 
+                    # color="C2")
+                    facecolor="white")
+    # ----------
+    # fill below tb
+    mask = (picked["kind"]=="tb=20")
+    ax.fill_between(picked[mask]["W"], picked[mask]["field"], 0,
+                    # color="C3")
+                    facecolor="white", hatch="+")
+    # ----------
+    # fill below tt=20 and W<=0
+    mask = (picked["kind"] == "tt=10") & (picked["W"] <= minw)
+    ax.fill_between(picked[mask]["W"], picked[mask]["field"], 0,
+                    # color="C2")
+                    facecolor="white")
+    # ----------
+    # fill between tt=10 and tplus
+    mask_nan = np.logical_not(np.isnan(picked["field"]))
+    mask_tt10 = mask_nan & (picked["kind"]=="tt=10")
+    mask_tplus = mask_nan & (picked["kind"]=="tplus=20")
+    intrp = pd.DataFrame()
+    intrp["x"] = pd.Series(
+            np.intersect1d(picked[mask_tt10]["W"], picked[mask_tplus]["W"]))
+    intrp["tplus=20"] = np.interp(intrp["x"], picked[mask_tplus]["W"],
+          picked[mask_tplus]["field"])
+    intrp["tt=10"] = np.interp(intrp["x"], picked[mask_tt10]["W"],
+          picked[mask_tt10]["field"])
+    ax.fill_between(intrp["x"], intrp["tt=10"], intrp["tplus=20"],
+                    # color="C3")
+                    facecolor="white", hatch="x")
+    # ----------
+    # fill above tt=10 and to the left of lowest energy of tt=10
+    mask = np.logical_not(np.isnan(picked["field"]))
+    mask = mask & (picked["kind"]=="tt=10")
+    mask_u = mask & (picked["W"]<=0)
+    ax.fill_between(picked[mask_u]["W"], 100, picked[mask_u]["field"],
+                    # color="C9")
+                    facecolor="white")
+    mask_o = mask & (picked["W"]>=0)
+    ax.fill_between(picked[mask_o]["W"], 100, picked[mask_o]["field"],
+                    # color="C8")
+                    facecolor="white")
+    min_tt10 = min(picked[mask]["W"])
+    ax.fill_between([-100,min_tt10], 100, 0,
+                    # color="C9")
+                    facecolor="white")
+    # ----------
+    # plot lines
+    # colors = ["C2", "k", "k", "k", "k"]
+    colors = ["gray", "k", "k", "k", "k"]
+    for i, kind in enumerate(picked["kind"].unique()):
+        mask = (picked["kind"]==kind)
+        # print(kind + "\t" + str(sum(mask)))
+        test = mask & np.logical_not(np.isnan(picked["field"]))
+        print(kind + "\t" + str(sum(test)))
+        picked[mask].plot(x="W", y="field", c=colors[i],
+                          linewidth=2, ax=ax)
+    # axeslines
+    # ax.axvline(0, color="k", linewidth=2)
+    fcut = picked[mask_tt10][picked[mask_tt10]["W"]==0]["field"]
+    print(fcut)
+    ax.plot([0,0], [fcut, 100], "k-", linewidth=2)
+    ax.axhline(0, color="k", linewidth=1)
+    # make it pretty
+    ax.set(xlabel=r"$E_{orbit} = E_0 + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)", title="Uphill Electrons", xlim=(-100,100),
+           ylim=(0,100))
+    ax.legend().remove()
+    # text boxes
+    props = dict(boxstyle='round', facecolor="white", alpha=1.0)
+    ax.text(-95, 95, "(a)", bbox=props)
+    ax.text(5, 95, "(b)", bbox=props)
+    ax.text(90, 55, "(c)", bbox=props)
+    ax.text(90, 32, "(d)", bbox=props)
+    ax.text(90, 10, "(e)", bbox=props)
+    plt.tight_layout()
+    plt.savefig("uphill_orbits.pdf")
+    return picked
+
+
+def build_data_raw():
+    data = read_tidy_binding()
+    data.to_csv("data_raw.txt")
+
+
+def build_picks():
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data["tplus"] = (2*data["tt"] - data["tb"]).where(data["Dir"] == -1.0)
+    # uphill picks
+    picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
+    mask = (data["Dir"] == -1)
+    picked_up = field_picker(data[mask], picks)
+    # downhill picks
+    picks = [["tt", 20], ["tt", 10], ["tb", 20]]
+    mask = (data["Dir"] == 1)
+    picked_down = field_picker(data[mask], picks)
+    picked = picked_up.append(picked_down)
+    picked.to_csv("picked_f.txt")
+    return data, picked
+
+
+def downhill_figure():
+    au = atomic_units()
+    # data
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data = data[data["Dir"] == 1]
+    # pick data
+    picked = pd.read_csv("picked_f.txt", index_col=0)
+    picked = picked[picked["Dir"] == 1]
+    picked["W"] = picked["W"]/au["GHz"]
+    picked["field"] = picked["field"]/au["mVcm"]
+    # plots
+    fig, ax = plt.subplots()
+    # tt = 10
+    mask = (picked["kind"]=="tt=10")
+    picked[mask].plot(x="W", y="field", ax=ax, label=r"$t_T$ = 10 ns")
+    # tb = 20
+    mask = (picked["kind"]=="tb=20")
+    picked[mask].plot(x="W", y="field", ax=ax, label=r"$t_B$ = 20 ns")
+    # ionization limit
+    fields = np.linspace(0, 300, num=201)*au["mVcm"]
+    ils = -2*np.sqrt(fields)
+    ax.plot(ils/au["GHz"], fields/au["mVcm"], label="DIL")
+    # lines
+    ax.axhline(0, color="black")
+    # pretty
+    ax.set(xlabel=r"$E_{orbit} = E_0 + \Delta E_{MW}$ (GHz)",
+           ylabel="Field (mV/cm)", title="Downhill Electrons", xlim=(-50, 10),
+           ylim=(0, 60))
+    ax.legend().remove()
+    plt.savefig("downhill_oribts.pdf")
+    return data, picked
+
+
+def main():
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data = data[data["Dir"] == 1].copy(deep=True)
+    fig, ax = plt.subplots()
+    W = data["W"].unique()[150]
+    print("W = ", np.round(W/au["GHz"],2), " GHz")
+    mask = (data["W"] == W)
+    ax.plot(data[mask]["field"]/au["mVcm"], data[mask]["tt"]/au["ns"])
     return
 
-au = atomic_units()
-# heatmap()
-# data = pd.read_csv("data_raw.txt", index_col=0)
-main()
-# field_tt_full()
-# field_tt_close()
-
+# build_data_raw()
+# build_picks()
+# uphill_figure()
+data, picked = downhill_figure()
+# main()
