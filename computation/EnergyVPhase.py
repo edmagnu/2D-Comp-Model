@@ -244,6 +244,10 @@ def DIL_table():
 
 
 def DIL_and_Potential_Plot():
+    """Produce a plot of the potential seen by an electron in a static field
+    and the depressed ioniztionlimit as a function of static field.
+    Returns DataFrames potential, dlimit
+    """
     fig, ax = plt.subplots(figsize=(6, 3), ncols=2)
     ax[0] = Potential_Plot(ax[0])
     ax[1] = DIL_Plot(ax[1])
@@ -259,11 +263,25 @@ def DIL_and_Potential_Plot():
                bbox=props)
     # finalize figure
     plt.tight_layout()
+    plt.savefig("DIL_and_Potential.pdf")
+    return
+
+
+def Build_Plots():
+    """Build plots from Potential_PLot(), DIL_Plot() and
+    DIL_and_Potential_Plot().
+    returns None"""
+    fig, ax = plt.subplots()
+    ax = Potential_Plot(ax)
+    plt.savefig("Potential.pdf")
+    fig, ax = plt.subplots()
+    ax = DIL_Plot(ax)
     plt.savefig("DIL.pdf")
+    DIL_and_Potential_Plot()
     return
 
 # fits = Efinal_phase()
 # potential, dlimit = DIL()
 # dil = DIL_table()
 # print(dil)
-DIL_and_Potential_Plot()
+Build_Plots()
