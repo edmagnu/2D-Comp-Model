@@ -67,9 +67,8 @@ n & 753 & 633 & 503 & 423 & 356 & 321 & 299 & 270 & 251 & 238 & 225 & 215 & 200 
 \caption{\label{fig:DIL} Applying a static field depresses the potential barrier an electron sees, classically leading to a depressed ionization limit (DIL). \textbf{(a)} Total potential seen by an electron in a static field. Electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL against applied static field.}
 \end{figure}
 
-\section{\label{sec:Turning} Turning Time}
+\section{\label{sec:Turning} Integral for Turning Time}
 
-\section{\label{sec:TInt} Integral for Turning Time}
 We would like to find the travel time from the electrons initial position ($z_i$) to the turning point ($z_T$). Knowing the total energy of the electron (W) and the potential (V), an integral for the travel time can be derived.
 \begin{align*}
 W & = \text{Total Energy} \\
@@ -92,11 +91,11 @@ W & = \pm \frac{1}{z_i} - Ez_i + \frac{l^2}{2z_i^2} \\
 0 & = Ez_i^3 + Wz_i^2 \pm z_i - l^2/2 \\
 & \text{The full cubic could be solved, but for our purposes} \\
  & |E| < 1000 ~ \text{mV/cm} ~ \text{and} ~ |W| < 1000 ~ \text{GHz} ~ \text{and} ~ |z_i| < 100. \\
- & \text{So} ~ |\frac{l^2}{2z_i^2}| >> |Ez_i| ~ , ~ |W| \\
+ & \text{So} ~ \frac{l^2}{2z_i^2} >> Ez_i ~ , ~ W \\
 0 & = \left(\frac{l^2}{2z_i^2} - Ez_i - W\right) \cdot z_i \pm 1 \\
 z_i & \approx \pm l^2/2
 \end{align*}
-For $l = 3$, $z_i = \pm 6$. Solving the full cubic with $|E| < 1000 ~ \text{mV/cm}$ and $|W| < 1000 ~ \text{GHz}$ shows this is true to 1 part in 100. Integrating shows the time an electron takes to travel from $z = 0$ to $z = \pm 6$ is negligible for these same conditions.
+For $l = 3$, $z_i = 6$. Solving the full cubic with $|E| < 1000 ~ \text{mV/cm}$ and $|W| < 1000 ~ \text{GHz}$ shows this is true to 1 part in 100. Integrating shows the time an electron takes to travel from $z = 0$ to $z = 6$ is negligible for these same conditions.
 \begin{align*}
 \Delta t & = \int_0^6 1/\sqrt{2(W + 1/z + Ez)} \cdot dz \\
  & \approx 4\sqrt{3} \\
@@ -118,7 +117,7 @@ z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \
 \end{align*}
 The uphill electron will always have a turning point (we've neglected the field $E$ turning off at 20 ns), while the downhill electron will only turn if it's energy is below the classical ionization limit $W < 2\sqrt{E}$.
 
-\subsection{\label{sec:calct} Calculating Turning Time}
+\section{\label{sec:calct} Calculating Turning Time}
 
 We are interested in the turning time of an electron launched in a 1D Coulomb and static field. Our static field is shut off after 20 ns, so the dynamics of electrons who turn before and after 20 ns should broadly be different. Further, electrons that have turning times of $t_T < 10 ~ \text{ns}$ will return to the core before 20 ns and exchange energy with the MW field.
 
@@ -130,26 +129,5 @@ z_i & = -6 & z_i & = 6 \\
 z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 + 4E}\right) & z_T & = -\frac{1}{2E} \left(W + \sqrt{W^2 - 4E}\right) \\
  & & & \text{for} ~ W < 2 \sqrt{E}
 \end{align*}
-
-\section{\label{sec:calcE0} Integral for Binding Time}
-
-At the turning time, the electron's radial motion has stopped, and if the field turns off the electron will be left in a bound state. For uphill electrons with $W > 0$, there is a window around $z_T$ where the electron is not stopped, but has slowed enough that turning off the field will leave it bound.
-\begin{align*}
-0 & = W + E z_B \\
-z_B & = -W/E
-\end{align*}
-The travel time $t_B$ to reach $z_B$ can be calculated in the same manner as $t_T$.
-\begin{align*}
-\text{for} ~ & z < 0: ~ \text{``uphill''} \\
-t_{u,B} & = \int_{z_i}^{z_B} -1/\sqrt{2(W - 1/z + Ez)} \cdot dz \\
-z_i & = -6 \\
-z_B & = -W/E \\
- & \text{for} ~ W > 0 ~ \text{and} ~ z_B > z_i
-\end{align*}
-An uphill electron will be in a bound state if t = 20 ns falls in this time region.
-\begin{equation*}
-\Delta t_B = t_T - t_B \quad ; \quad
-t_T - \Delta t_B < (t = 20 ~ \text{ns}) < t_T + \Delta t_B
-\end{equation*}
 
 \end{document}
