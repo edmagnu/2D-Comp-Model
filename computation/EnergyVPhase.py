@@ -148,6 +148,90 @@ def DIL():
     return potential, dlimit
 
 
+def Potential_Plot(ax):
+    """Plot of just the potential in static field.
+    Returns matplotlib axes object"""
+    # Atomic units
+    fAU1mVcm = 1.94469e-13
+    enAU1GHz = 1.51983e-7
+    # set up figure
+    # fig, ax = plt.subplots(figsize=(6, 3), ncols=2)
+    # Potential DataFrame
+    f = 10*fAU1mVcm
+    lim = -2*(np.abs(f))**(0.5)/enAU1GHz
+    rbound = (1/np.abs(f))**0.5
+    zmax = 10000000
+    dz = zmax/10000
+    potential = pd.DataFrame({"z": np.arange(-zmax, 0, dz)})
+    potential = potential.append(
+            pd.DataFrame({"z": np.arange(dz, zmax + dz, dz)}))
+    potential["C"] = -1/(np.abs(potential["z"]))/enAU1GHz
+    potential["E"] = -f*potential["z"]/enAU1GHz
+    potential["V"] = potential["C"] + potential["E"]
+    # plot potential
+    potential.plot(x="z", y="V", linewidth="3", ax=ax)
+    potential.plot(x="z", y="E", linewidth="3",
+                   label=r"$-E \cdot z$", ax=ax)
+    # add Field arrow
+    acent = 0
+    awidth = 0.1*zmax
+    ax.arrow(x=acent-awidth/2, y=15, dx=awidth, dy=0, width=1,
+                length_includes_head=True, head_width=5,
+                head_length=0.2*awidth, fc="k", ec="k")
+    props = props = dict(boxstyle='round', color="white", alpha=1.0)
+    ax.text(0.8, 0.7, r"$\vec{E}$", transform=ax.transAxes, fontsize=14,
+               verticalalignment="top", horizontalalignment="right",
+               bbox=props)
+    # add indicator lines
+    ax.axhline(0, linestyle="dashed", color="gray")
+    ax.axhline(lim, linestyle="dashed", color="gray")
+    ax.axvline(rbound, linestyle="dashed", color="gray")
+    # make it pretty
+    ax.set_xlim(-0.15*zmax, 0.15*zmax)
+    ax.set_ylim(-50, 50)
+    ax.set_xticks([rbound, 0])
+    ax.set_xticklabels([r"$\sqrt{1/E}$", 0])
+    ax.set_yticks([lim, 0])
+    ax.set_yticklabels([r"$-2\sqrt{E}$", 0])
+    ax.set_xlabel("z")
+    ax.set_ylabel("Energy")
+    ax.legend(loc=2, framealpha=1)
+    # add (a) box
+    # props = props = dict(boxstyle='round', facecolor="white", alpha=1.0)
+    # ax.text(0.95, 0.95, "(a)", transform=ax.transAxes, fontsize=14,
+    #         verticalalignment="top", horizontalalignment="right", bbox=props)
+    return ax
+
+
+def DIL_Plot(ax):
+    """Plot of DIL as a function of static field.
+    Returns matplotlib axes object."""
+    # Atomic units
+    fAU1mVcm = 1.94469e-13
+    enAU1GHz = 1.51983e-7
+    # Limit DataFrame
+    fmin = 0
+    fmax = 300
+    df = 0.1
+    dlimit = pd.DataFrame({"field": np.arange(fmin, fmax+df, df)})
+    dlimit["limit"] = -2/enAU1GHz*(dlimit["field"]*fAU1mVcm)**(0.5)
+    # plot limit
+    dlimit.plot(x="field", y="limit", linewidth="3", legend=None, ax=ax)
+    # make it pretty
+    ax.set_xlabel("Field (mV/cm)")
+    ax.set_xlim(-10, 110)
+    ax.set_ylabel("DIL (GHz)")
+    ax.set_ylim(-70, 10)
+    ax.set_yticks(np.arange(-70, 20, 10))
+    ax.grid(b=True, which="major", color="black")
+    ax.grid(b=True, which="minor")
+    # add (b) box
+    # props = props = dict(boxstyle='round', facecolor="white", alpha=1)
+    # ax.text(0.95, 0.95, "(b)", transform=ax.transAxes, fontsize=14,
+    #         verticalalignment="top", horizontalalignment="right", bbox=props)
+    return ax
+
+
 def DIL_table():
     au = atomic_units()
     dil = pd.DataFrame()
@@ -158,7 +242,28 @@ def DIL_table():
     dil["n"] = np.sqrt(1/(2*dil["dil"]*au["GHz"]))
     return dil
 
+
+def DIL_and_Potential_Plot():
+    fig, ax = plt.subplots(figsize=(6, 3), ncols=2)
+    ax[0] = Potential_Plot(ax[0])
+    ax[1] = DIL_Plot(ax[1])
+    # add (a) box
+    props = props = dict(boxstyle='round', color="white", alpha=1.0)
+    ax[0].text(0.8, 0.7, r"$\vec{E}$", transform=ax[0].transAxes, fontsize=14,
+               verticalalignment="top", horizontalalignment="right",
+               bbox=props)
+    # add (b) box
+    props = props = dict(boxstyle='round', facecolor="white", alpha=1)
+    ax[1].text(0.95, 0.95, "(b)", transform=ax[1].transAxes, fontsize=14,
+               verticalalignment="top", horizontalalignment="right",
+               bbox=props)
+    # finalize figure
+    plt.tight_layout()
+    plt.savefig("DIL.pdf")
+    return
+
 # fits = Efinal_phase()
-potential, dlimit = DIL()
+# potential, dlimit = DIL()
 # dil = DIL_table()
-print(dil)
+# print(dil)
+DIL_and_Potential_Plot()
