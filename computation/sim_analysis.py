@@ -368,7 +368,7 @@ def xticks_2p():
 
 
 def main():
-    phi0 = 9*np.pi/6
+    phi0 = 1*np.pi/6
     dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
     # build dict of parameters
@@ -381,7 +381,7 @@ def main():
     mask = mask & (data["E0"] == vals["E0"][0])
     mask = mask & (data["Ep"] == vals["Ep"][0])
     mask = mask & (data["dL"] == vals["dL"][1])
-    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
+    mask = mask & (data["th_LRL"] == vals["th_LRL"][1])
     # convolve
     # data, scrap, scrap = convolution(data, mask)
     amlaser = pd.DataFrame()
