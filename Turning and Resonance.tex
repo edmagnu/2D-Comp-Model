@@ -1,6 +1,7 @@
 \documentclass[aps,pra,preprint,groupedaddress]{revtex4-1}
 \usepackage{graphicx}
 \usepackage{amsmath}
+\usepackage{cancel}
 
 \begin{document}
 
@@ -11,12 +12,103 @@
 \affiliation{University of Virginia, Department of Physics}
 \date{\today}
 
+\begin{abstract}
+Eq. 8.9, 8.10, and 8.16 in \emph{Rydberg Atoms} describes the spacing of resonant energies ($dW/dn_1$) in a Coulomb and Static Field. A change of variable in Eq. 8.9 shows this integral is related to our integral for the turning time ($t_T$) of an "uphill" electron, giving $\pi ~ dW/dn_1 = t_T$. In terms of a cavity travel time, $T/2 = t_T$. This is true for any W, but for the special case of $W = 0$ there is an exact solution of $dW/dn_1 = 3.7 E^{3/4}$ and $t_T = 1/2 \cdot (3.7 E^{3/4})^{-1}$. For $W \neq 0$, Eq 8.16 gives a complicated relationship between $dW/dn$, $E$, and $W$. Comparing to calculated $t_T$, Eq 8.16 is useful for $W \leq 0$, but fails for $W > 0$.
+\end{abstract}
+
 \maketitle
 
 \section{\label{sec:WKBtt} WKB from Eq. 8.9 and Turning Time}
 
+\begin{figure}
+\includegraphics[width=\textwidth]{computation/Potential}
+\caption{\label{fig:pot} The potential seen by an electron in our model. We assume $\hat{E} = \hat{z}$ and "uphill" electron positions are $z < 0$. In Ch. 8 of \emph{Rydberg Atoms}, they assume the field points the opposite direction $\hat{E} = - \hat{z}$ and consider electrons bound by the static field as having $z > 0$.}
+\end{figure}
+
 It turns out that the turning time integral you suggested and the WKB integral for $dW/dn_1$ are related to each other. I'm sure there is a deep reason.
+
+\subsection{\label{sec:WKB} WKB and Eq. 8.9 }
+
+The result found in Eq. 8.9 in \emph{Rydberg Atoms} is expressed in $\xi = r + z$. To compare to the turning time, transform from $\xi \rightarrow 2z$ for our 1-d case.
+\begin{align*}
+\frac{dn_1}{dW} ~ \pi & = \int_0^{\xi_m} \left( \frac{W}{2} + \frac{Z_1}{\xi} - \frac{E\xi}{4} \right)^{-1/2} ~ \frac{d\xi}{4} \\
+\text{for} \quad & \xi = r + z = 2z , \quad d\xi = 2 dz , \quad \text{ and } z = \frac{\xi}{2} \\
+\frac{dn_1}{dW} ~ \pi & = \int_0^{z_m} \left( \frac{W}{2} + \frac{Z_i}{2z} - \frac{2Ez}{4} \right)^{-1/2} ~ \frac{2 dz}{4} \\
+ & = \int_0^{z_m} [2(W + Z_1 / z - Ez)]^{-1/2} ~ dz
+\end{align*}
 
 \subsection{\label{sec:tt} Turning Time Integral}
 
+The potential used in our model is shown in Fig.~\ref{fig:pot}. In Ch. 8 of \emph{Rydberg Atoms}, the field points in $\hat{E} = -\hat{z}$ direction, so there will be some differences to account for.
+
+The turning time ($t_T$) integral for an uphill electron is:
+\begin{align*}
+\frac{dz}{dt} = v & = - \sqrt{2(W - V)} \\
+dt & = - [2(W - V)]^{-1/2} ~ dz \\
+t_T & = - \int_{z_i}^{z_T} [2(W - V)]^{-1/2} ~ dz \\
+ & = - \int_{z_i}^{z_T} [2(W + 1/r + Ez)]^{-1/2} ~ dz \\
+ & = - \int_{z_i}^{z_T} [2(W - 1/z + Ez)]^{-1/2} ~ dz
+\end{align*}
+To make this fit with Ch. 8 in \emph{Rydberg Atoms}, the field and the velocity need to be flipped.
+\begin{align*}
+\text{Flip} ~ \hat{v} \quad t_T & = \int_{z_i}^{z_T} [2(W + 1/z + Ez)]^{-1/2} ~ dz \\
+\text{Flip} ~ \hat{E} \quad t_T & = \int_{z_i}^{z_T} [2(W + 1/z - Ez)]^{-1/2} ~ dz \\
+\end{align*}
+
+\subsection{\label{sec:eq} Equivalence}
+
+Assuming that $\xi_m = z_T$ and $z_i = 0$, the integrals are identical and there is a relationship between $t_T$ and $\Delta W$. Using the De Broglie relationship, we can put this in terms of a "round trip cavity time" $T$.
+\begin{align*}
+t_T & = \frac{dn_1}{dW} ~ \pi
+ = \pi / \Delta W
+ = \pi ~ \frac{1}{h \nu}
+ = \pi ~ \frac{T}{2 \pi \cancelto{1}{\hbar}} \\
+t_T & = \frac{T}{2}
+\end{align*}
+The extra 1/2 can be attributed to only needing to fit a half cycle in the "cavity" provided by the potential. See the $(n_1 + 1/2)$ factor in Eq. 8.8 of \emph{Rydberg Atoms}. Otherwise, the resonance condition and the turning time integral produce identical results.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{ResRetComp}
+\caption{\label{fig:RRC} Turning Time ($t_T$) plotted against field $E$ at various total energies $W$. This calculation assumes no MW fields. For $W=0$, the result in Eq. 8.10 of \emph{Rydberg Atoms} is exactly double our calculated turning times. For $W \neq 0$ it should not be surprising the relationship doesn't hold. However, the integral used to calculate $t_T$ is exactly 1/2 the integral in Eq. 8.9.}
+\end{figure}
+
+\section{\label{sec:fpower} Turning Time as function of Field}
+
+The integral in Eq. 8.9 of \emph{Rydberg Atoms} can be solved for the case of $W = 0$ to give Eq. 8.10:
+\begin{align*}
+\pi ~ \frac{dn_1}{dW} & = \int_0^{z_m} [2(W + Z_1 / z - Ez)]^{-1/2} ~ dz \\
+ & z_m = 1/\sqrt{E}, \quad W = 0 \\
+\pi ~ \frac{dn_1}{dW} & = 0.847 ~ E^{-3/4} \\
+\frac{dW}{dn_1} & = 3.7 ~ E^{3/4}
+\end{align*}
+For $W \neq 0$, I can't find an analytic solution.
+
+Eq. 8.16 in \emph{Rydberg Atoms} provides a different approach.
+\begin{align*}
+W & = - \frac{1}{2n^2} + \frac{3n^2E}{2} \\
+n & = \left( \sqrt{W^2 + 3E} - W \right)^{-1/2} \\
+\frac{dW}{dn} & = \frac{1}{n^3} + 3nE \\
+\end{align*}
+If $W = 0$, this gives a tidy expression.
+\begin{align*}
+n & = (3E)^{-1/4} \\
+\frac{dW}{dn} & = \frac{1}{3E^{-3/4}} + (3E)^{-3/4} (3E) \\
+ & = 2(3E)^{3/4} \\
+ & = 4.56 E^{3/4}
+\end{align*}
+The factor is a bit off, but the $E^{3/4}$ dependency is right. If $W \neq 0$, then nothing is clean and simple:
+\begin{align*}
+\frac{dW}{dn} & = 3E \left(\sqrt{W^2 + 3E} - W\right)^{-1/2} + \left(\sqrt{W^2 + 3E} - W\right)^{3/2}
+\end{align*}
+Maybe there is a good way to make a $W^2/E << 1$ limit approximation, but I don't see it. Fig.~\ref{fig:nzw} shows using this exact expression to guess at the functional shape of $t_T(E)$ on a log-log plot. The results look okay for $W<0$, but completely wrong for $W>0$.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{NonZeroW}
+\caption{\label{fig:nzw} Using Eq 8.16 provides a relationship for $dW/dn$ when $W \neq 0$. Plotted are the calculated $t_T$ against $1/(2 dW/dn)$ at various W. For $W < 0$, the relationship seems to work, but for $W > 0$ it fails to get the shape of the curve.}
+\end{figure}
+
+
+\section{\label{sec:conc} Conclusion}
+
+The WKB method referenced in Eq. 8.9 and Eq. 8.10 of \emph{Rydberg Atoms} is identically (up to constant factors) the integral we use for turning time $t_T$ for any $W$. If $W = 0$, there is a nice $t_T = (3.7 E^{3/4})^{-1}$ relationship. For $W \neq 0$, the relationship is complicated, and fails to describe $W > 0$.
 \end{document}
