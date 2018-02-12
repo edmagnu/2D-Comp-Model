@@ -315,8 +315,8 @@ def convolution(data, mask):
     conv3["phi"] = data3["phi"]
     # conv3["conv"] =
     conv3["conv"] = np.convolve(data3["bound"], amlaser["I"], mode="same")
-    conv = conv3.loc[0:199]
-    data.loc[mask, "conv"] = conv3.loc[0:199, "conv"]
+    conv = conv3.iloc[0:199]
+    data.loc[mask, "conv"] = conv3.iloc[0:199]["conv"]
     return data, conv, mask
 
 
@@ -329,6 +329,7 @@ def test_convolve():
     keys = ["E0", "Ep", "dL", "th_LRL"]
     for key in keys:
         vals[key] = np.sort(data[key].unique())
+    # print(vals)
     # build convolution array
     data["conv"] = pd.Series([np.NaN]*len(data), dtype=float)
     # mask particular run
@@ -359,4 +360,66 @@ def test_convolve():
     return data, conv, mask
 
 
-data, conv, mask = test_convolve()
+def xticks_2p():
+    """Return ticks and ticklabels starting at pi/6 separated by pi/2"""
+    ticklabels = [r"$\pi/6$", r"$4\pi/6$", r"$7\pi/6$", r"$10\pi/6$"]
+    ticks = [np.pi/6, 4*np.pi/6, 7*np.pi/6, 10*np.pi/6]
+    return ticks, ticklabels
+
+
+def main():
+    phi0 = 9*np.pi/6
+    dphi = np.pi/12
+    data = bound_test_data(phi0=phi0, dphi=dphi)
+    # build dict of parameters
+    vals = {}
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    for key in keys:
+        vals[key] = np.sort(data[key].unique())
+    # build mask for one particular set
+    mask = pd.Series([True]*len(data))
+    mask = mask & (data["E0"] == vals["E0"][0])
+    mask = mask & (data["Ep"] == vals["Ep"][0])
+    mask = mask & (data["dL"] == vals["dL"][1])
+    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
+    # convolve
+    # data, scrap, scrap = convolution(data, mask)
+    amlaser = pd.DataFrame()
+    # build phi range from -2pi -> 4pi
+    phis = data[mask]["phi"]
+    phis.index = range(0, 200)
+    phis_t = (data[mask]["phi"] - 2*np.pi)
+    phis_t.index = range(-200, 0)
+    phis = phis.append(phis_t)
+    phis_t = data[mask]["phi"] + 2*np.pi
+    phis_t.index = range(200, 400)
+    phis = phis.append(phis_t)
+    # print(len(phis))
+    phis.sort_values(inplace=True)
+    amlaser["phi"] = phis
+    # print(min(amlaser["phi"]), max(amlaser["phi"]))
+    amlaser["I"] = conv_model(amlaser["phi"], np.pi)/(200*0.5)
+    conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
+    # plots
+    fig, ax = plt.subplots()
+    # plot bound_p
+    data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0", label="bound")
+    # data[mask].plot.line(x="phi", y="conv", ax=ax, c="C1", linewidth=3,
+                         # label="conv")
+    ax.plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100, c="C2",
+            linewidth=3, label="I")
+    ax.plot(amlaser["phi"].loc[0:199], conv[200:400], c="C3", linewidth=3,
+            label="conv")
+    # plot marker lines
+    ax.axvline(phi0 % (2*np.pi), linestyle="dashed", c="lightgreen")
+    ax.axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="lightblue")
+    # make it pretty
+    xticks, xticklabels = xticks_2p()
+    ax.set(xticks=xticks, xticklabels=xticklabels, title="test data")
+           # xlim=(-2*np.pi, 4*np.pi))
+    ax.legend()
+    return conv, mask, amlaser
+
+
+conv, mask, amlaser = main()
+# data, conv, mask = test_convolve()
