@@ -320,46 +320,6 @@ def convolution(data, mask):
     return data, conv, mask
 
 
-def test_convolve():
-    phi0 = np.pi/6
-    dphi = np.pi/12
-    data = bound_test_data(phi0=phi0, dphi=dphi)
-    # build dict of parameters
-    vals = {}
-    keys = ["E0", "Ep", "dL", "th_LRL"]
-    for key in keys:
-        vals[key] = np.sort(data[key].unique())
-    # print(vals)
-    # build convolution array
-    data["conv"] = pd.Series([np.NaN]*len(data), dtype=float)
-    # mask particular run
-    combos = itertools.product(
-            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
-    for combo in combos:
-        val = {}  # store current values
-        mask = [True]*len(data)  # start with every point
-        for i in [0, 1, 2, 3]:
-            mask = mask & (data[keys[i]] == combo[i])  # add conditions to mask
-            val[keys[i]] = combo[i]
-        print(val)
-        print(data[mask].index)
-        data, conv, mask = convolution(data, mask)
-        # conv.plot(x="phi", y="conv")
-    # ax = conv.plot(x="phi", y="conv", kind="scatter", color="C0")
-    fig, ax = plt.subplots()
-    ax.plot(data[mask]["phi"], data[mask]["bound_p"], ".", color="C0",
-            label="bound")
-    # data[mask].plot(x="phi", y="bound_p", kind="scatter", color="C0", ax=ax)
-    ax.plot(data[mask]["phi"], data[mask]["conv"], ".", color="C1",
-            label="conv")
-    # data[mask].plot(x="phi", y="conv", kind="scatter", color="C1", ax=ax)
-    ax.axvline(2*np.pi, color="black")
-    ax.axvline(0, color="black")
-    ax.axvline(phi0, color="black", linestyle="dashed")
-    ax.legend()
-    return data, conv, mask
-
-
 def xticks_2p():
     """Return ticks and ticklabels starting at pi/6 separated by pi/2"""
     ticklabels = [r"$\pi/6$", r"$4\pi/6$", r"$7\pi/6$", r"$10\pi/6$"]
