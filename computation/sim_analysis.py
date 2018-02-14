@@ -299,27 +299,6 @@ def data_triple(data):
     return data
 
 
-def convolution(data, mask):
-    """Run a convolution on data[mask] based on conv_model().
-    Set the "conv" key in data to the result.
-    Returns DataFrame"""
-    # amlaser.plot(x="phi", y="I", kind="scatter")
-    amlaser = pd.DataFrame()
-    amlaser["phi"] = data[mask]["phi"]
-    amlaser["I"] = conv_model(amlaser["phi"], np.pi)/(200*0.5)
-    # triple data
-    data3 = data_triple(data[mask])
-    # mask particular run with E0, Ep, dL, th_LRL
-    # convolve
-    conv3 = pd.DataFrame()
-    conv3["phi"] = data3["phi"]
-    # conv3["conv"] =
-    conv3["conv"] = np.convolve(data3["bound"], amlaser["I"], mode="same")
-    conv = conv3.iloc[0:199]
-    data.loc[mask, "conv"] = conv3.iloc[0:199]["conv"]
-    return data, conv, mask
-
-
 def xticks_2p():
     """Return ticks and ticklabels starting at pi/6 separated by pi/2"""
     ticklabels = [r"$\pi/6$", r"$4\pi/6$", r"$7\pi/6$", r"$10\pi/6$"]
@@ -348,66 +327,92 @@ def laser_envelope(data):
     return amlaser
 
 
-def main():
+def combinations(data, keys):
+    """Given the DataFrame data, and keys in data, produce a list of all the
+    combinations of unique values data has for those keys.
+    Returns combos: list of unique combinations,
+            vals: dict of {key: unique values}"""
+    vals = {}
+    vallist = []
+    for key in keys:
+        vals[key] = np.sort(data[key].unique())
+        vallist.append(vals[key])
+    combos = list(itertools.product(*vallist))
+    return combos, vals
+
+
+def convolution(data, E0, Ep, dL, th_LRL):
+    """Given DataFrame data, select only obs with the specified E0, Ep, dL,
+    th_LRL, and convolve the "phi" vs "bound_p" data with the array from
+    laser_envelope(). Store the convolution in data["conv"]
+    Returns data: DataFrame, mask: Boolean mask used,
+            amlaser: Convolution envelope"""
+    # unpack combination mask
+    mask = pd.Series([True]*len(data))
+    mask = mask & (data["E0"] == E0)
+    mask = mask & (data["Ep"] == Ep)
+    mask = mask & (data["dL"] == dL)
+    mask = mask & (data["th_LRL"] == th_LRL)
+    # convolve
+    amlaser = laser_envelope(data[mask])
+    conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
+    # insert convolution into data
+    data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
+    return data, mask, amlaser
+
+
+def plot_conv(data, ax, E0, Ep, dL, th_LRL):
+    """Given DataFrame data, select the obs with the specified E0, Ep, dL,
+    th_LRL, and plot the convolution on the provided axes ax.
+    Returns mask: Boolean mask used, ax: matplotlib axes object."""
     au = atomic_units()
+    # unpack combination mask
+    mask = pd.Series([True]*len(data))
+    mask = mask & (data["E0"] == E0)
+    mask = mask & (data["Ep"] == Ep)
+    mask = mask & (data["dL"] == dL)
+    mask = mask & (data["th_LRL"] == th_LRL)
+    # convolve
+    amlaser = laser_envelope(data[mask])
+    # plot bound_p
+    data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0",
+                            label="Bound")
+    ax.plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100,
+               c="C2", linewidth=3, label=r"Laser I")
+    data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
+                    ax=ax)
+    # make it pretty
+    xticks, xticklabels = xticks_2p()
+    titlestring = ("E0 = " + str(E0/au["GHz"]) + "\tEp = " +
+                   str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
+                   "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
+    ax.set(xticks=xticks, xticklabels=xticklabels,
+              xlabel=r"Phase $\phi$", ylabel="", title=titlestring)
+    ax.legend()
+    return mask, ax
+
+
+def test_convolve():
     # build test data
     phi0 = 1*np.pi/6
     dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
-    # build dict of parameters
-    vals = {}
-    keys = ["E0", "Ep", "dL", "th_LRL"]
-    for key in keys:
-        vals[key] = np.sort(data[key].unique())
     data["conv"] = pd.Series([np.NaN]*len(data))
-    combos = list(itertools.product(
-            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"]))
-    for E0, Ep, dL, th_LRL in combos:
-        print(E0, Ep, dL, th_LRL)
-        # unpack combination mask
-        mask = pd.Series([True]*len(data))
-        mask = mask & (data["E0"] == E0)
-        mask = mask & (data["Ep"] == Ep)
-        mask = mask & (data["dL"] == dL)
-        mask = mask & (data["th_LRL"] == th_LRL)
-        # convolve
-        amlaser = laser_envelope(data[mask])
-        conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
-        # insert convolution into data
-        data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
+    # build dict of parameters
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(data, keys)
+    for combo in combos:
+        data, mask, amlaser = convolution(data, *combo)
     # plots
     fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
-    for i, (E0, Ep, dL, th_LRL) in enumerate(combos):
-        print(E0, Ep, dL, th_LRL)
-        # unpack combination mask
-        mask = pd.Series([True]*len(data))
-        mask = mask & (data["E0"] == E0)
-        mask = mask & (data["Ep"] == Ep)
-        mask = mask & (data["dL"] == dL)
-        mask = mask & (data["th_LRL"] == th_LRL)
-        # plot bound_p
-        data[mask].plot.scatter(x="phi", y="bound_p", ax=ax[i], c="C0",
-                                label="Bound")
-        ax[i].plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100,
-                   c="C2", linewidth=3, label=r"Laser I")
-        data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
-                        ax=ax[i])
+    for i, combo in enumerate(combos):
+        plot_conv(data, ax[i], *combo)
         # plot marker lines
         ax[i].axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
         ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
-        # make it pretty
-        xticks, xticklabels = xticks_2p()
-        titlestring = ("E0 = " + str(E0/au["GHz"]) + "\tEp = " +
-                       str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
-                       "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
-        ax[i].set(xticks=xticks, xticklabels=xticklabels,
-                  xlabel=r"Phase $\phi$", ylabel="", title=titlestring)
-        ax[i].legend()
-        # iterate
-        i = i+1
     plt.tight_layout()
     return data
 
 
-data = main()
+data = test_convolve()
 # data, conv, mask = test_convolve()
