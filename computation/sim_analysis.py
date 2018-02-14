@@ -350,6 +350,7 @@ def laser_envelope(data):
 
 def main():
     au = atomic_units()
+    # build test data
     phi0 = 1*np.pi/6
     dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
@@ -361,8 +362,8 @@ def main():
         vals[key] = np.sort(data[key].unique())
         count = count*len(vals[key])
     data["conv"] = pd.Series([np.NaN]*len(data))
-    combos = itertools.product(
-            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    combos = list(itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"]))
     for E0, Ep, dL, th_LRL in combos:
         print(E0, Ep, dL, th_LRL)
         # unpack combination mask
@@ -377,8 +378,6 @@ def main():
         # insert convolution into data
         data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
     # plots
-    combos = itertools.product(
-            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
     fig, ax = plt.subplots(nrows=count, figsize=(6, 3*count))
     i = 0
     for E0, Ep, dL, th_LRL in combos:
