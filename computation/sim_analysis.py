@@ -355,7 +355,7 @@ def convolution(data, E0, Ep, dL, th_LRL):
     mask = mask & (data["th_LRL"] == th_LRL)
     # convolve
     amlaser = laser_envelope(data[mask])
-    conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
+    conv = np.convolve(data[mask]["bound_p"], amlaser["I"], mode="same")
     # insert convolution into data
     data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
     return data, mask, amlaser
@@ -422,11 +422,15 @@ def build_convolve():
     combos, vals = combinations(data, keys)
     print()
     for i, combo in enumerate(combos):
-        print("\r {0}/{1}".format(i, len(combos)), end="\r")
+        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
         data, mask, amlaser = convolution(data, *combo)
+        if (sum(mask) != 200):
+            print(sum(mask))
     print()
     data.to_csv("data_conv.txt")
     return data
 
 
 data = pd.read_csv("data_conv.txt", index_col=0)
+# data = build_convolve()
+# data, combos = main()
