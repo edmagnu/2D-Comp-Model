@@ -414,5 +414,19 @@ def test_convolve():
     return data
 
 
-data = test_convolve()
-# data, conv, mask = test_convolve()
+def build_convolve():
+    data = pd.read_csv("data_bound.txt", index_col=0)
+    data["conv"] = pd.Series([np.NaN]*len(data))
+    # build dict of parameters
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(data, keys)
+    print()
+    for i, combo in enumerate(combos):
+        print("\r {0}/{1}".format(i, len(combos)), end="\r")
+        data, mask, amlaser = convolution(data, *combo)
+    print()
+    data.to_csv("data_conv.txt")
+    return data
+
+
+data = pd.read_csv("data_conv.txt", index_col=0)
