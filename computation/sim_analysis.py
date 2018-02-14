@@ -367,6 +367,27 @@ def xticks_2p():
     return ticks, ticklabels
 
 
+def laser_envelope(data):
+    """Takes masked data, builds a laser envelope from -2pi to 4pi
+    Returns DataFrame amlaser["phi", "I"]"""
+    # Build phase from -2pi to 4pi
+    phis = data["phi"]
+    lphi = len(phis)
+    phis.index = range(0, lphi)
+    phis_t = data["phi"] - 2*np.pi
+    phis_t.index = range(-lphi, 0)
+    phis = phis.append(phis_t)
+    phis_t = data["phi"] + 2*np.pi
+    phis_t.index = range(lphi, 2*lphi)
+    phis = phis.append(phis_t)
+    phis.sort_values(inplace=True)
+    # build into amlaser
+    amlaser = pd.DataFrame()
+    amlaser["phi"] = phis
+    amlaser["I"] = conv_model(amlaser["phi"], np.pi)/(200*0.5)
+    return amlaser
+
+
 def main():
     phi0 = 1*np.pi/6
     dphi = np.pi/12
@@ -381,42 +402,32 @@ def main():
     mask = mask & (data["E0"] == vals["E0"][0])
     mask = mask & (data["Ep"] == vals["Ep"][0])
     mask = mask & (data["dL"] == vals["dL"][1])
-    mask = mask & (data["th_LRL"] == vals["th_LRL"][1])
+    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
     # convolve
-    # data, scrap, scrap = convolution(data, mask)
-    amlaser = pd.DataFrame()
-    # build phi range from -2pi -> 4pi
-    phis = data[mask]["phi"]
-    phis.index = range(0, 200)
-    phis_t = (data[mask]["phi"] - 2*np.pi)
-    phis_t.index = range(-200, 0)
-    phis = phis.append(phis_t)
-    phis_t = data[mask]["phi"] + 2*np.pi
-    phis_t.index = range(200, 400)
-    phis = phis.append(phis_t)
-    # print(len(phis))
-    phis.sort_values(inplace=True)
-    amlaser["phi"] = phis
-    # print(min(amlaser["phi"]), max(amlaser["phi"]))
-    amlaser["I"] = conv_model(amlaser["phi"], np.pi)/(200*0.5)
+    data["conv"] = pd.Series([np.NaN]*len(data))
+    amlaser = laser_envelope(data[mask])
     conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
+    data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
     # plots
     fig, ax = plt.subplots()
     # plot bound_p
-    data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0", label="bound")
+    data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0",
+                            label="Bound")
     # data[mask].plot.line(x="phi", y="conv", ax=ax, c="C1", linewidth=3,
-                         # label="conv")
+    #                      label="conv")
     ax.plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100, c="C2",
-            linewidth=3, label="I")
-    ax.plot(amlaser["phi"].loc[0:199], conv[200:400], c="C3", linewidth=3,
-            label="conv")
+            linewidth=3, label=r"Laser I")
+    data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
+                    ax=ax)
+    # ax.plot(data[mask]["phi"], data[mask]["conv"], c="C3", linewidth=3,
+    #         label="Conv.")
     # plot marker lines
-    ax.axvline(phi0 % (2*np.pi), linestyle="dashed", c="lightgreen")
-    ax.axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="lightblue")
+    ax.axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
+    ax.axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
     # make it pretty
     xticks, xticklabels = xticks_2p()
-    ax.set(xticks=xticks, xticklabels=xticklabels, title="test data")
-           # xlim=(-2*np.pi, 4*np.pi))
+    ax.set(xticks=xticks, xticklabels=xticklabels, title="test data",
+           xlabel=r"Phase $phi$", ylabel="")
     ax.legend()
     return conv, mask, amlaser
 
