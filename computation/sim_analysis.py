@@ -389,48 +389,69 @@ def laser_envelope(data):
 
 
 def main():
+    au = atomic_units()
     phi0 = 1*np.pi/6
     dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
     # build dict of parameters
     vals = {}
     keys = ["E0", "Ep", "dL", "th_LRL"]
+    count = 1
     for key in keys:
         vals[key] = np.sort(data[key].unique())
-    # build mask for one particular set
-    mask = pd.Series([True]*len(data))
-    mask = mask & (data["E0"] == vals["E0"][0])
-    mask = mask & (data["Ep"] == vals["Ep"][0])
-    mask = mask & (data["dL"] == vals["dL"][1])
-    mask = mask & (data["th_LRL"] == vals["th_LRL"][0])
-    # convolve
+        count = count*len(vals[key])
     data["conv"] = pd.Series([np.NaN]*len(data))
-    amlaser = laser_envelope(data[mask])
-    conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
-    data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
+    combos = itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    for E0, Ep, dL, th_LRL in combos:
+        print(E0, Ep, dL, th_LRL)
+        # unpack combination mask
+        mask = pd.Series([True]*len(data))
+        mask = mask & (data["E0"] == E0)
+        mask = mask & (data["Ep"] == Ep)
+        mask = mask & (data["dL"] == dL)
+        mask = mask & (data["th_LRL"] == th_LRL)
+        # convolve
+        amlaser = laser_envelope(data[mask])
+        conv = np.convolve(data[mask]["bound"], amlaser["I"], mode="same")
+        # insert convolution into data
+        data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
     # plots
-    fig, ax = plt.subplots()
-    # plot bound_p
-    data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0",
-                            label="Bound")
-    # data[mask].plot.line(x="phi", y="conv", ax=ax, c="C1", linewidth=3,
-    #                      label="conv")
-    ax.plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100, c="C2",
-            linewidth=3, label=r"Laser I")
-    data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
-                    ax=ax)
-    # ax.plot(data[mask]["phi"], data[mask]["conv"], c="C3", linewidth=3,
-    #         label="Conv.")
-    # plot marker lines
-    ax.axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
-    ax.axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
-    # make it pretty
-    xticks, xticklabels = xticks_2p()
-    ax.set(xticks=xticks, xticklabels=xticklabels, title="test data",
-           xlabel=r"Phase $phi$", ylabel="")
-    ax.legend()
-    return conv, mask, amlaser
+    combos = itertools.product(
+            vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"])
+    fig, ax = plt.subplots(nrows=count, figsize=(6, 3*count))
+    i = 0
+    for E0, Ep, dL, th_LRL in combos:
+        print(E0, Ep, dL, th_LRL)
+        # unpack combination mask
+        mask = pd.Series([True]*len(data))
+        mask = mask & (data["E0"] == E0)
+        mask = mask & (data["Ep"] == Ep)
+        mask = mask & (data["dL"] == dL)
+        mask = mask & (data["th_LRL"] == th_LRL)
+        # plot bound_p
+        data[mask].plot.scatter(x="phi", y="bound_p", ax=ax[i], c="C0",
+                                label="Bound")
+        ax[i].plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100,
+                   c="C2", linewidth=3, label=r"Laser I")
+        data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
+                        ax=ax[i])
+        # plot marker lines
+        ax[i].axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
+        ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
+        # make it pretty
+        xticks, xticklabels = xticks_2p()
+        titlestring = ("E0 = " + str(E0/au["GHz"]) + "\tEp = " +
+                       str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
+                       "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
+        ax[i].set(xticks=xticks, xticklabels=xticklabels,
+                  xlabel=r"Phase $\phi$", ylabel="", title=titlestring)
+        ax[i].legend()
+        # iterate
+        i = i+1
+    plt.tight_layout()
+    return data
 
 
-conv, mask, amlaser = main()
+data = main()
 # data, conv, mask = test_convolve()
