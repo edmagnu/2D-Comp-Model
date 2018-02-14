@@ -357,10 +357,8 @@ def main():
     # build dict of parameters
     vals = {}
     keys = ["E0", "Ep", "dL", "th_LRL"]
-    count = 1
     for key in keys:
         vals[key] = np.sort(data[key].unique())
-        count = count*len(vals[key])
     data["conv"] = pd.Series([np.NaN]*len(data))
     combos = list(itertools.product(
             vals["E0"], vals["Ep"], vals["dL"], vals["th_LRL"]))
@@ -378,9 +376,8 @@ def main():
         # insert convolution into data
         data.loc[mask, "conv"] = conv[range(sum(mask), 2*sum(mask))]
     # plots
-    fig, ax = plt.subplots(nrows=count, figsize=(6, 3*count))
-    i = 0
-    for E0, Ep, dL, th_LRL in combos:
+    fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
+    for i, (E0, Ep, dL, th_LRL) in enumerate(combos):
         print(E0, Ep, dL, th_LRL)
         # unpack combination mask
         mask = pd.Series([True]*len(data))
