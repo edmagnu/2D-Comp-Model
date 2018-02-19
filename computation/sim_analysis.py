@@ -415,6 +415,12 @@ def test_convolve():
 
 
 def build_convolve():
+    """Reads DataFrame from data_bound.txt. Looks at every combination of E0,
+    Ep, dL, and th_LRL with combinations(). Masks out each combination and
+    convolves with convolution(), producing a new data["conv"] key. Writes to
+    data_conv.txt
+    Returns data DataFrame.
+    """
     data = pd.read_csv("data_bound.txt", index_col=0)
     data["conv"] = pd.Series([np.NaN]*len(data))
     # build dict of parameters
@@ -429,6 +435,10 @@ def build_convolve():
     print()
     data.to_csv("data_conv.txt")
     return data
+
+
+def main():
+    return
 
 
 # data = pd.read_csv("data_conv.txt", index_col=0)
