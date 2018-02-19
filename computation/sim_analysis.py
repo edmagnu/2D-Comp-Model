@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import os
 import itertools
+import scipy.optimize
 
 
 def atomic_units():
@@ -392,15 +393,15 @@ def plot_conv(data, ax, E0, Ep, dL, th_LRL):
     return mask, ax
 
 
-def test_convolve(plot=True):
+def test_convolve(phi0=np.pi/6, dphi=np.pi/12, plot=True):
     """Produces DataFrame from bound_test_data(). For each E0, Ep, dL, and
     th_LRL combination from combinations(), uses convolution() to convolve with
     the laser_envelope(). Plots each combination using plot_conv().
     Returns DataFrame data.
     """
     # build test data
-    phi0 = 1*np.pi/6
-    dphi = np.pi/12
+    # phi0 = 1*np.pi/6
+    # dphi = np.pi/12
     data = bound_test_data(phi0=phi0, dphi=dphi)
     data["conv"] = pd.Series([np.NaN]*len(data))
     # build dict of parameters
@@ -443,9 +444,67 @@ def build_convolve():
     return data
 
 
-def main():
-    data = test_convolve(plot=False)
+def combo_mask(data, E0, Ep, dL, th_LRL):
+    """Given values in combo = [E0, Ep, dL, th_LRL], return a mask of just
+    those obs in data DataFrame
+    Returns boolean array mask"""
+    mask = pd.Series([True]*len(data))
+    mask = mask & (data["E0"] == E0)
+    mask = mask & (data["Ep"] == Ep)
+    mask = mask & (data["dL"] == dL)
+    mask = mask & (data["th_LRL"] == th_LRL)
+    return mask
+
+
+def model_func(x, a, x0, y0):
+    """Model for fitting cosine to convolved data"""
+    return y0 + a*np.cos(x - x0)
+
+
+def main(plot=False):
+    au = atomic_units()
+    # load test data
+    phi0 = 4*np.pi/6
+    dphi = np.pi/12
+    data = test_convolve(phi0, dphi, plot=False)
+    # get combination list
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(data, keys)
+    # build placeholders
+    data["popt"] = pd.Series([[np.NaN, np.NaN, np.NaN]]*len(data))
+    data["pconv"] = pd.Series([[[np.NaN, np.NaN, np.NaN]]*3]*len(data))
+    data["fitconv"] = pd.Series([np.NaN]*len(data))
+    data["fft"] = pd.Series(np.NaN*len(data))
+    # get fit parameters and data
+    print()
+    for i, combo in enumerate(combos):
+        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        mask = combo_mask(data, *combo)
+        phis = data[mask]["phi"]
+        conv = data[mask]["conv"]
+        p0 = [0.5, 1, np.pi/6]  # best zero-info guess for model_func
+        popt, pconv = scipy.optimize.curve_fit(model_func, phis, conv, p0)
+        fitconv = model_func(phis, *popt)
+        data.loc[mask, "popt"] = pd.Series([popt]*sum(mask))
+        data.loc[mask, "pconv"] = pd.Series([pconv]*sum(mask))
+        data.loc[mask, "fitconv"] = fitconv
+    if plot==True:
+        fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
+        for i, combo in enumerate(combos):
+            (E0, Ep, dL, th_LRL) = combo
+            mask = combo_mask(data, *combo)
+            phis = data[mask]["phi"]
+            data[mask].plot(x="phi", y="conv", label="conv", ax=ax[i])
+            data[mask].plot(x="phi", y="fitconv", label="fit", ax=ax[i])
+            ax[i].plot(data[mask]["phi"],
+                       data[mask]["fitconv"] - data[mask]["conv"], label="diff")
+            titlestring = ("E0 = " + str(E0/au["GHz"]) + "\tEp = " +
+                           str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
+                           "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
+            ax[i].set(title=titlestring)
+            ax[i].legend()
+            plt.tight_layout()
     return data
 
 
-data = main()
+data = main(plot=True)
