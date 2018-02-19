@@ -431,6 +431,7 @@ def build_convolve():
     return data
 
 
-data = pd.read_csv("data_conv.txt", index_col=0)
+# data = pd.read_csv("data_conv.txt", index_col=0)
 # data = build_convolve()
 # data, combos = main()
+data = test_convolve()
