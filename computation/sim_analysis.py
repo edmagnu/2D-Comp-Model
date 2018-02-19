@@ -392,7 +392,12 @@ def plot_conv(data, ax, E0, Ep, dL, th_LRL):
     return mask, ax
 
 
-def test_convolve():
+def test_convolve(plot=True):
+    """Produces DataFrame from bound_test_data(). For each E0, Ep, dL, and
+    th_LRL combination from combinations(), uses convolution() to convolve with
+    the laser_envelope(). Plots each combination using plot_conv().
+    Returns DataFrame data.
+    """
     # build test data
     phi0 = 1*np.pi/6
     dphi = np.pi/12
@@ -404,13 +409,14 @@ def test_convolve():
     for combo in combos:
         data, mask, amlaser = convolution(data, *combo)
     # plots
-    fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
-    for i, combo in enumerate(combos):
-        plot_conv(data, ax[i], *combo)
-        # plot marker lines
-        ax[i].axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
-        ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
-    plt.tight_layout()
+    if plot is True:
+        fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
+        for i, combo in enumerate(combos):
+            plot_conv(data, ax[i], *combo)
+            # plot marker lines
+            ax[i].axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
+            ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
+        plt.tight_layout()
     return data
 
 
@@ -438,10 +444,8 @@ def build_convolve():
 
 
 def main():
-    return
+    data = test_convolve(plot=False)
+    return data
 
 
-# data = pd.read_csv("data_conv.txt", index_col=0)
-# data = build_convolve()
-# data, combos = main()
-data = test_convolve()
+data = main()
