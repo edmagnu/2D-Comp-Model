@@ -461,17 +461,18 @@ def model_func(x, a, x0, y0):
     return y0 + a*np.cos(x - x0)
 
 
-def main(plot=False):
+def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
     au = atomic_units()
     # load test data
-    phi0 = 4*np.pi/6
-    dphi = np.pi/12
+    # phi0 = 4*np.pi/6
+    # dphi = np.pi/12
     data = test_convolve(phi0, dphi, plot=False)
     # get combination list
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(data, keys)
     # build placeholders
     data["popt"] = pd.Series([[np.NaN, np.NaN, np.NaN]]*len(data))
+    # data["popt"] = pd.Series([np.NaN]*len(data))
     data["pconv"] = pd.Series([[[np.NaN, np.NaN, np.NaN]]*3]*len(data))
     data["fitconv"] = pd.Series([np.NaN]*len(data))
     data["fft"] = pd.Series(np.NaN*len(data))
@@ -485,26 +486,38 @@ def main(plot=False):
         p0 = [0.5, 1, np.pi/6]  # best zero-info guess for model_func
         popt, pconv = scipy.optimize.curve_fit(model_func, phis, conv, p0)
         fitconv = model_func(phis, *popt)
-        data.loc[mask, "popt"] = pd.Series([popt]*sum(mask))
-        data.loc[mask, "pconv"] = pd.Series([pconv]*sum(mask))
+        data.loc[mask, "popt"] = [[popt]]*sum(mask)
+        data.loc[mask, "pconv"] = [pconv]*sum(mask)
         data.loc[mask, "fitconv"] = fitconv
     if plot==True:
-        fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)))
+        fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)),
+                               sharex=True)
         for i, combo in enumerate(combos):
             (E0, Ep, dL, th_LRL) = combo
             mask = combo_mask(data, *combo)
             phis = data[mask]["phi"]
-            data[mask].plot(x="phi", y="conv", label="conv", ax=ax[i])
-            data[mask].plot(x="phi", y="fitconv", label="fit", ax=ax[i])
+            ax[i].axvline(phi0, linestyle="solid", c="gray")
+            ax[i].axvline((phi0 + np.pi) % (2*np.pi), linestyle="dashed",
+                          c="gray")
+            data[mask].plot(x="phi", y="bound_p", label="bound",
+                            kind="scatter", c="C0", ax=ax[i])
+            data[mask].plot(x="phi", y="conv", label="conv", c="C1", lw=2,
+                            ax=ax[i])
+            data[mask].plot(x="phi", y="fitconv", label="fit", c="C2", lw=2,
+                            ax=ax[i])
             ax[i].plot(data[mask]["phi"],
-                       data[mask]["fitconv"] - data[mask]["conv"], label="diff")
+                       data[mask]["fitconv"] - data[mask]["conv"],
+                       label="diff", c="C3", lw=2)
             titlestring = ("E0 = " + str(E0/au["GHz"]) + "\tEp = " +
                            str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
                            "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
-            ax[i].set(title=titlestring)
+            xticks, xticklabels = xticks_2p()
+            ax[i].set(xticks=xticks, xticklabels=xticklabels,
+                      xlabel=r"Phase $\phi$", ylabel="",
+                      title=titlestring)
             ax[i].legend()
             plt.tight_layout()
     return data
 
 
-data = main(plot=True)
+data = test_fits()
