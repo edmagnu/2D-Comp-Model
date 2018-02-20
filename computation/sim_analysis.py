@@ -475,11 +475,13 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(data, keys)
     # build placeholders
-    data["popt"] = pd.Series([[np.NaN, np.NaN, np.NaN]]*len(data))
-    # data["popt"] = pd.Series([np.NaN]*len(data))
-    data["pconv"] = pd.Series([[[np.NaN, np.NaN, np.NaN]]*3]*len(data))
+    data["a"] = pd.Series([np.NaN]*len(data))
+    data["x0"] = pd.Series([np.NaN]*len(data))
+    data["y0"] = pd.Series([np.NaN]*len(data))
+    data["a_sigma"] = pd.Series([np.NaN]*len(data))
+    data["x0_sigma"] = pd.Series([np.NaN]*len(data))
+    data["y0_sigma"] = pd.Series([np.NaN]*len(data))
     data["fitconv"] = pd.Series([np.NaN]*len(data))
-    data["fft"] = pd.Series(np.NaN*len(data))
     # get fit parameters and data
     print()
     for i, combo in enumerate(combos):
@@ -489,10 +491,13 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
         conv = data[mask]["conv"]
         p0 = [0.5, 1, np.pi/6]  # best zero-info guess for model_func
         popt, pconv = scipy.optimize.curve_fit(model_func, phis, conv, p0)
-        fitconv = model_func(phis, *popt)
-        data.loc[mask, "popt"] = [[popt]]*sum(mask)
-        data.loc[mask, "pconv"] = [pconv]*sum(mask)
-        data.loc[mask, "fitconv"] = fitconv
+        data.loc[mask, "a"] = [popt[0]]*sum(mask)
+        data.loc[mask, "a_sigma"] = [pconv[0, 0]]
+        data.loc[mask, "x0"] = [popt[1]]*sum(mask)
+        data.loc[mask, "x0_sigma"] = [pconv[1, 1]]
+        data.loc[mask, "y0"] = [popt[2]]*sum(mask)
+        data.loc[mask, "y0_sigma"] = [pconv[2,2]]
+        data.loc[mask, "fitconv"] = model_func(phis, *popt)
     if plot==True:
         fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)),
                                sharex=True)
@@ -524,4 +529,45 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
     return data
 
 
-data = test_fits()
+def build_fits():
+    # load convolved data
+    data = pd.read_csv("data_conv.txt", index_col=0)
+    # get combination list
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(data, keys)
+    # build placeholders
+    data["a"] = pd.Series([np.NaN]*len(data))
+    data["x0"] = pd.Series([np.NaN]*len(data))
+    data["y0"] = pd.Series([np.NaN]*len(data))
+    data["a_sigma"] = pd.Series([np.NaN]*len(data))
+    data["x0_sigma"] = pd.Series([np.NaN]*len(data))
+    data["y0_sigma"] = pd.Series([np.NaN]*len(data))
+    data["fitconv"] = pd.Series([np.NaN]*len(data))
+    # get fit parameters and data
+    print()
+    for i, combo in enumerate(combos[0:20]):
+        # progress
+        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        # get masked phi and convolution data
+        mask = combo_mask(data, *combo)
+        phis = data[mask]["phi"]
+        conv = data[mask]["conv"]
+        # run fit
+        p0 = [0.5, 1, np.pi/6]  # best zero-info guess for model_func
+        popt, pconv = scipy.optimize.curve_fit(model_func, phis, conv, p0)
+        # add to DataFrame
+        data.loc[mask, "a"] = [popt[0]]*sum(mask)
+        data.loc[mask, "a_sigma"] = [pconv[0, 0]]
+        data.loc[mask, "x0"] = [popt[1]]*sum(mask)
+        data.loc[mask, "x0_sigma"] = [pconv[1, 1]]
+        data.loc[mask, "y0"] = [popt[2]]*sum(mask)
+        data.loc[mask, "y0_sigma"] = [pconv[2,2]]
+        data.loc[mask, "fitconv"] = model_func(phis, *popt)
+    # save
+    data.to_csv("data_fit.txt")
+    return data
+
+
+# data = test_fits()
+build_fits()
+data = pd.read_csv("data_fit.txt", index_col=0)
