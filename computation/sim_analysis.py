@@ -462,6 +462,10 @@ def model_func(x, a, x0, y0):
 
 
 def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
+    """Load fake data from test_convolve(), and fit the "conv" to the
+    model_func y0 + a*cos(x-x0). Add the popt, pconv and fitted data to the
+    DataFrame.
+    return DataFrame data with "popt", "pconv", "fitconv" keys added."""
     au = atomic_units()
     # load test data
     # phi0 = 4*np.pi/6
