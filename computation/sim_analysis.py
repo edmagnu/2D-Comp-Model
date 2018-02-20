@@ -545,7 +545,7 @@ def build_fits():
     data["fitconv"] = pd.Series([np.NaN]*len(data))
     # get fit parameters and data
     print()
-    for i, combo in enumerate(combos[0:20]):
+    for i, combo in enumerate(combos):
         # progress
         print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
         # get masked phi and convolution data
@@ -568,6 +568,31 @@ def build_fits():
     return data
 
 
+def build_params():
+    # load fit data
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    # get combination list
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(data, keys)
+    # initialize params DataFrame
+    # will have Filename, E0, Ep, dL, th_LRL, a, x0, y0, a_sigma, x0_sigma,
+    #   y0_sigma
+    params = pd.DataFrame()
+    pkeys = ["Filename", "E0", "Ep", "dL", "th_LRL", "a", "x0", "y0",
+             "a_sigma", "x0_sigma", "y0_sigma"]
+    for i, combo in enumerate(combos):
+        # progress
+        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        # get mask
+        mask = combo_mask(data, *combo)
+        # pick one observation to fill params entry
+        obs = data[mask].iloc[0][pkeys]
+        params = params.append(obs)
+    params.to_csv("params.txt")
+    return data, params
+
+
 # data = test_fits()
-build_fits()
-data = pd.read_csv("data_fit.txt", index_col=0)
+# build_fits()
+# data = pd.read_csv("data_fit.txt", index_col=0)
+data, params = build_params()
