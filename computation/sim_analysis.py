@@ -555,6 +555,11 @@ def build_fits():
         # run fit
         p0 = [0.5, 1, np.pi/6]  # best zero-info guess for model_func
         popt, pconv = scipy.optimize.curve_fit(model_func, phis, conv, p0)
+        # coerce fit parameters
+        if popt[0] < 0:
+            popt[0] = -popt[0]
+            popt[1] = (popt[1] - np.pi)
+        popt[1] = popt[1] & (2*np.pi)
         # add to DataFrame
         data.loc[mask, "a"] = [popt[0]]*sum(mask)
         data.loc[mask, "a_sigma"] = [pconv[0, 0]]
@@ -593,6 +598,6 @@ def build_params():
 
 
 # data = test_fits()
-# build_fits()
-# data = pd.read_csv("data_fit.txt", index_col=0)
-data, params = build_params()
+build_fits()
+data = pd.read_csv("data_fit.txt", index_col=0)
+# data, params = build_params()
