@@ -328,7 +328,7 @@ def laser_envelope(data):
     return amlaser
 
 
-def combinations(data, keys):
+def combinations(data, keys, drop_nan=True):
     """Given the DataFrame data, and keys in data, produce a list of all the
     combinations of unique values data has for those keys.
     Returns combos: list of unique combinations,
@@ -336,7 +336,10 @@ def combinations(data, keys):
     vals = {}
     vallist = []
     for key in keys:
-        vals[key] = np.sort(data[key].unique())
+        val = np.sort(data[key].unique())
+        if drop_nan is True:
+            val = val[~np.isnan(val)]
+        vals[key] = val
         vallist.append(vals[key])
     combos = list(itertools.product(*vallist))
     return combos, vals
@@ -573,6 +576,21 @@ def build_fits():
     return data
 
 
+def HarAddTheCos(a1, phi1, a2, phi2):
+    """Harmonic Addition Theorem for 2 cosines. Returns a, phi such that
+    a1*Cos[x - phi1] + a2*cos(x - phi2) = a*cos(x - phi)"""
+    # convert to sines so a1*sin(t + d1) + a2*sin(t + d2) = a*sin(t + d)
+    d1 = -phi1 + np.pi/2
+    d2 = -phi2 + np.pi/2
+    # find a and d
+    a = np.sqrt(a1**2 + a2**2 + 2*a1*a2*np.cos(d2 - d1))
+    d = np.arctan2(a1*np.sin(d1) + a2*np.sin(d2),
+                   a1*np.cos(d1) + a2*np.cos(d2))
+    # convert back to cosines
+    phi = -(d - np.pi/2)
+    return a, phi
+
+
 def build_params():
     # load fit data
     data = pd.read_csv("data_fit.txt", index_col=0)
@@ -597,7 +615,57 @@ def build_params():
     return data, params
 
 
-# data = test_fits()
-build_fits()
+# build_params()
+# main script
+# load data
 data = pd.read_csv("data_fit.txt", index_col=0)
-# data, params = build_params()
+params = pd.read_csv("params.txt", index_col=0)
+# get combos of dL +/- pairs
+keys = ["E0", "Ep", "th_LRL"]
+combos, vals = combinations(params, keys)
+combo = combos[0]
+# build mask for particular combo
+mask = [True]*len(params)
+for i in range(len(keys)):
+    mask = mask & (params[keys[i]] == combo[i])
+if sum(mask)!=2:  # check that mask is just 2
+    print("lines 623-624: params mask error")
+# unpack fit values from masked params
+a1 = params[mask].iloc[0]["a"]
+a2 = params[mask].iloc[1]["a"]
+g1 = params[mask].iloc[0]["x0"]
+g2 = params[mask].iloc[1]["x0"]
+c1 = params[mask].iloc[0]["y0"]
+c2 = params[mask].iloc[1]["y0"]
+# use Harmonic Addition Theorem
+a, g = HarAddTheCos(a1, g1, a2, g2)
+# build an observation to append to params
+obs = params[mask].iloc[0]
+obs["dL"] = np.NaN
+obs["a"] = a/2
+obs["x0"] = g
+obs["y0"] = (c1 + c2)/2
+obs.name = obs.name-1
+# append to params, ignore the index
+params = params.append(obs, ignore_index=True)
+# pick out the new value you added.
+mask = [True]*len(params)
+for i in range(len(keys)):
+    mask = mask & (params[keys[i]] == combo[i])
+mask_dL = mask & np.isnan(params["dL"])
+# plot a check.
+fig, ax = plt.subplots()
+xs = np.arange(0, 2*np.pi, np.pi/100)
+y1s = model_func(xs, a1, g1, c1)
+y2s = model_func(xs, a2, g2, c2)
+ys = model_func(xs, a, g, c1+c2)
+ax.plot(xs, y1s, label="y1", lw=3)
+ax.plot(xs, y2s, label="y2", lw=1)
+ax.plot(xs, ys, label="sol", lw=3)
+ax.plot(xs, y1s + y2s, label="sum", lw=1)
+ax.axvline(np.pi/6, c="k")
+ax.axvline(g, c="grey")
+ax.legend()
+# scatter the phis from params
+fig, ax2 = plt.subplots()
+ax2.plot(params["x0"], params["Ep"], '.')
