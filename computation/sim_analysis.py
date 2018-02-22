@@ -330,7 +330,9 @@ def laser_envelope(data):
 
 def combinations(data, keys, drop_nan=True):
     """Given the DataFrame data, and keys in data, produce a list of all the
-    combinations of unique values data has for those keys.
+    combinations of unique values data has for those keys. If drop_nan is True,
+    all np.NaN values will be removed from the unique values and
+    the combinations.
     Returns combos: list of unique combinations,
             vals: dict of {key: unique values}"""
     vals = {}
@@ -770,16 +772,60 @@ def check_analysis(keys, combo, ax):
     n = 2
     ax[n].axvline(np.pi/6, c="k")
     ax[n].axvline(7*np.pi/6, c="k")
+    ax[n].axhline(0, c="k")
     dmask.plot(x="phi", y="conv", ax=ax[n])
     # beautify
-    ax[n].set(xticks=xticks, xticklabels=xticklabels,
+    ax[n].set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1),
               xlabel=r"MW Phase $\phi$", ylabel="Convolution")
+    ax[n].legend().remove()
     ax[n].tick_params(which="minor", bottom="off")
     plt.tight_layout()
     return data, params
 
 
-def main():
+def params_plot(params, keys, combo, ax):
+    # au = atomic_units()
+    # unpack
+    [E0, Ep, dL, th_LRL] = combo
+    # build mask
+    mask = [True]*len(params)
+    for i in range(len(keys)):
+        if np.isnan(combo[i]):
+            mask = mask & np.isnan(params[keys[i]])
+        else:
+            mask = mask & (params[keys[i]] == combo[i])
+    if sum(mask) != 1:
+        print("Mask Error")
+    # pull out just this observation from params
+    obs = params[mask]
+    a = float(obs["a"])
+    x0 = float(obs["x0"])
+    y0 = float(obs["y0"])
+    # build data from fits
+    xs = np.arange(0, 2*np.pi, np.pi/100)
+    ys = model_func(xs, a, x0, y0)
+    # plot
+    ax.axvline(np.pi/6, c="k")
+    ax.axvline(7*np.pi/6, c="k")
+    ax.axhline(0, c="k")
+    ax.plot(xs, ys, color="C0")
+    # beautify
+    xticks, xticklabels = xticks_2p()
+    if np.isnan(dL):
+        dLstring = "Both"
+    else:
+        dLstring = str(np.round(dL, 2))
+    if np.isnan(th_LRL):
+        thstring = "Both"
+    else:
+        thstring = str(np.round(th_LRL/np.pi, 2)) + r"$\pi$"
+    titlestring = ("dL = " + dLstring + "        " + "th_LRL = " + thstring)
+    ax.set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1),
+           xlabel=r"MW Phase $\phi$", ylabel="Signal", title=titlestring)
+    return
+
+
+def build_report_pdf():
     au = atomic_units()
     # get data
     params = pd.read_csv("params_sums.txt", index_col=0)
@@ -814,14 +860,44 @@ def main():
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
     axes = [ax[0, 3], ax[1, 3], ax[2, 3]]
     data, params = check_analysis(keys, combo, axes)
+    # dL = NaN, th_LRL = 0
+    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
+    params_plot(params, keys, combo, ax[4, 0])
+    # dL = NaN, th_LRL = pi
+    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][1]]
+    params_plot(params, keys, combo, ax[4, 2])
+    # dL = NaN, th_LRL = NaN
+    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, np.NaN]
+    params_plot(params, keys, combo, ax[6, 0])
     # finalize figure
     plt.suptitle("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
                  "    " + "    " +
                  "Ep = " + str(np.round(combo[1]/au["mVcm"], 2)) + " mV/cm")
+    for i in range(4):
+        ax[3, i].axis("off")
+        ax[5, i].axis("off")
+    for i in [1, 3]:
+        ax[4, i].axis("off")
+    for i in [1, 2, 3]:
+        ax[6, i].axis("off")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig("check.pdf")
     plt.close(fig)
     return data, params
 
 
-data, params = main()
+def main():
+    # au = atomic_units()
+    # get data
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    # data = pd.read_csv("data_fit.txt", index_col=0)
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(params, keys)
+    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
+    fig, ax = plt.subplots()
+    params_plot(params, keys, combo, ax)
+    return
+
+
+build_report_pdf()
+# main()
