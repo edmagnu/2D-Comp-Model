@@ -382,7 +382,7 @@ def plot_conv(data, ax, E0, Ep, dL, th_LRL):
     data[mask].plot.scatter(x="phi", y="bound_p", ax=ax, c="C0",
                             label="Bound")
     ax.plot(amlaser.loc[0:199, "phi"], amlaser.loc[0:199, "I"]*100,
-               c="C2", linewidth=3, label=r"Laser I")
+            c="C2", linewidth=3, label=r"Laser I")
     data[mask].plot(x="phi", y="conv", c="C3", lw=3, label="Conv.",
                     ax=ax)
     # make it pretty
@@ -391,7 +391,7 @@ def plot_conv(data, ax, E0, Ep, dL, th_LRL):
                    str(Ep/au["mVcm"]) + "\tdL = " + str(dL) +
                    "\tth_LRL = " + str(th_LRL/np.pi) + r"$\pi$")
     ax.set(xticks=xticks, xticklabels=xticklabels,
-              xlabel=r"Phase $\phi$", ylabel="", title=titlestring)
+           xlabel=r"Phase $\phi$", ylabel="", title=titlestring)
     ax.legend()
     return mask, ax
 
@@ -419,7 +419,8 @@ def test_convolve(phi0=np.pi/6, dphi=np.pi/12, plot=True):
             plot_conv(data, ax[i], *combo)
             # plot marker lines
             ax[i].axvline(phi0 % (2*np.pi), linestyle="solid", c="silver")
-            ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed", c="silver")
+            ax[i].axvline((phi0+np.pi) % (2*np.pi), linestyle="dashed",
+                          c="silver")
         plt.tight_layout()
     return data
 
@@ -499,9 +500,9 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
         data.loc[mask, "x0"] = [popt[1]]*sum(mask)
         data.loc[mask, "x0_sigma"] = [pconv[1, 1]]
         data.loc[mask, "y0"] = [popt[2]]*sum(mask)
-        data.loc[mask, "y0_sigma"] = [pconv[2,2]]
+        data.loc[mask, "y0_sigma"] = [pconv[2, 2]]
         data.loc[mask, "fitconv"] = model_func(phis, *popt)
-    if plot==True:
+    if plot is True:
         fig, ax = plt.subplots(nrows=len(combos), figsize=(6, 3*len(combos)),
                                sharex=True)
         for i, combo in enumerate(combos):
@@ -569,7 +570,7 @@ def build_fits():
         data.loc[mask, "x0"] = [popt[1]]*sum(mask)
         data.loc[mask, "x0_sigma"] = [pconv[1, 1]]
         data.loc[mask, "y0"] = [popt[2]]*sum(mask)
-        data.loc[mask, "y0_sigma"] = [pconv[2,2]]
+        data.loc[mask, "y0_sigma"] = [pconv[2, 2]]
         data.loc[mask, "fitconv"] = model_func(phis, *popt)
     # save
     data.to_csv("data_fit.txt")
@@ -591,7 +592,7 @@ def HarAddTheCos(a1, phi1, a2, phi2):
     return a, phi
 
 
-def plot_sums(a1,a2,g1,g2,c1,c2,a,g):
+def plot_sums(a1, a2, g1, g2, c1, c2, a, g):
     # plot a check.
     fig, ax = plt.subplots()
     xs = np.arange(0, 2*np.pi, np.pi/100)
@@ -648,7 +649,7 @@ def dL_sums(params):
         mask = [True]*len(params)
         for i in range(len(keys)):
             mask = mask & (params[keys[i]] == combo[i])
-        if sum(mask)!=2:  # check that mask is just 2
+        if sum(mask) != 2:  # check that mask is just 2
             print("params mask error")
         # unpack fit values from masked params
         a1 = params[mask].iloc[0]["a"]
@@ -684,7 +685,7 @@ def th_LRL_sums(params):
             mask = mask & (params[keys[i]] == combo[i])
         # add that we only want to look at dL = np.NaN
         mask = mask & np.isnan(params["dL"])
-        if sum(mask)!=2:  # check tha tmask is just 2
+        if sum(mask) != 2:  # check tha tmask is just 2
             print("params mask error")
         # unpack fit values from masked params
         a1 = params[mask].iloc[0]["a"]
@@ -717,4 +718,110 @@ def build_params_sums():
     return params
 
 
-build_params_sums()
+def check_analysis(keys, combo, ax):
+    au = atomic_units()
+    [E0, Ep, dL, th_LRL] = combo
+    # read data
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    # mask out the combo
+    mask = combo_mask(data, *combo)
+    dmask = data[mask].copy(deep=True)
+    dmask["enfinal"] = dmask["enfinal"]/au["GHz"]
+    # get nans
+    masknan = np.isnan(dmask["enfinal"])
+    # plot
+    # rows = 3
+    # fig, ax = plt.subplots(nrows=rows, sharex=True, figsize=(6, 3*rows))
+    xticks, xticklabels = xticks_2p()
+    # titlestring = ("E0 = " + str(np.round(E0/au["GHz"], 2)) + " GHz" +
+    #                "    " +
+    #                "Ep = " + str(np.round(Ep/au["mVcm"], 2)) + " mV/cm" +
+    #                "    " +
+    #                "dL = " + str(dL) +
+    #                "   " +
+    #                "th_LRL = " + str(np.round(th_LRL/np.pi, 2)) + r"$\pi$")
+    titlestring = ("dL = " + str(dL) + "\t" +
+                   "th_LRL = " + str(np.round(th_LRL/np.pi, 2)) + r"$\pi$")
+    # fig.suptitle(titlestring)
+    # ax[0] : phi vs enfinal
+    n = 0
+    ax[n].axvline(np.pi/6, c="k")
+    ax[n].axvline(7*np.pi/6, c="k")
+    ax[n].axhline(0, c="k")
+    dmask.plot(x="phi", y="enfinal", kind="scatter", ax=ax[0])
+    ax[n].plot(dmask[masknan]["phi"], [0]*sum(masknan), 'X', c="C3")
+    # beautify
+    ax[n].set(xticks=xticks, xticklabels=xticklabels,
+              xlabel=r"MW Phase $\phi$", ylabel="Final Energy (GHz)",
+              title=titlestring)
+    ax[n].tick_params(which="minor", bottom="off")
+    # ax[1] : phi vs bound_p
+    n = 1
+    ax[n].axvline(np.pi/6, c="k")
+    ax[n].axvline(7*np.pi/6, c="k")
+    dmask.plot(x="phi", y="bound_p", kind="scatter", ax=ax[n])
+    ax[n].plot(dmask[masknan]["phi"], dmask[masknan]["bound_p"], 'X', c="C3")
+    # beautify
+    ax[n].set(xticks=xticks, xticklabels=xticklabels,
+              xlabel=r"MW Phase $\phi$", ylabel="Bound Patch")
+    ax[n].tick_params(which="minor", bottom="off")
+    # ax[2] : phi vs convolution
+    n = 2
+    ax[n].axvline(np.pi/6, c="k")
+    ax[n].axvline(7*np.pi/6, c="k")
+    dmask.plot(x="phi", y="conv", ax=ax[n])
+    # beautify
+    ax[n].set(xticks=xticks, xticklabels=xticklabels,
+              xlabel=r"MW Phase $\phi$", ylabel="Convolution")
+    ax[n].tick_params(which="minor", bottom="off")
+    plt.tight_layout()
+    return data, params
+
+
+def main():
+    au = atomic_units()
+    # get data
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    # build combos
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(params, keys)
+    # print("E0:\t", vals["E0"]/au["GHz"])
+    # print("Ep:\n", pd.Series(vals["Ep"]/au["mVcm"]))
+    # print("th_LRL:\t", vals["th_LRL"])
+    # print("dL:\t", vals["dL"])
+    # pick combo
+    # plot
+    fig, ax = plt.subplots(nrows=7, ncols=4, figsize=(6*4, 7*3))
+    # dL = -1, th_LRL = 0
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
+    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    axes = [ax[0, 0], ax[1, 0], ax[2, 0]]
+    data, params = check_analysis(keys, combo, axes)
+    # dL = +1, th_LRL = 0
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][0]]
+    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    axes = [ax[0, 1], ax[1, 1], ax[2, 1]]
+    data, params = check_analysis(keys, combo, axes)
+    # dL = -1, th_LRL = pi
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][1]]
+    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    axes = [ax[0, 2], ax[1, 2], ax[2, 2]]
+    data, params = check_analysis(keys, combo, axes)
+    # dL = +1, th_LRL = pi
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][1]]
+    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    axes = [ax[0, 3], ax[1, 3], ax[2, 3]]
+    data, params = check_analysis(keys, combo, axes)
+    # finalize figure
+    plt.suptitle("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
+                 "    " + "    " +
+                 "Ep = " + str(np.round(combo[1]/au["mVcm"], 2)) + " mV/cm")
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.savefig("check.pdf")
+    plt.close(fig)
+    return data, params
+
+
+data, params = main()
