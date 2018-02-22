@@ -8,6 +8,7 @@ Created on Tue Jan 30 15:58:04 2018
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.gridspec as gridspec
 import os
 import itertools
 import scipy.optimize
@@ -754,9 +755,8 @@ def check_analysis(keys, combo, ax):
     dmask.plot(x="phi", y="enfinal", kind="scatter", ax=ax[0])
     ax[n].plot(dmask[masknan]["phi"], [0]*sum(masknan), 'X', c="C3")
     # beautify
-    ax[n].set(xticks=xticks, xticklabels=xticklabels,
-              xlabel=r"MW Phase $\phi$", ylabel="Final Energy (GHz)",
-              title=titlestring)
+    ax[n].set(xticks=xticks, xticklabels=xticklabels, title=titlestring)
+    #           xlabel=r"MW Phase $\phi$", ylabel="Final Energy (GHz)",
     ax[n].tick_params(which="minor", bottom="off")
     # ax[1] : phi vs bound_p
     n = 1
@@ -765,8 +765,8 @@ def check_analysis(keys, combo, ax):
     dmask.plot(x="phi", y="bound_p", kind="scatter", ax=ax[n])
     ax[n].plot(dmask[masknan]["phi"], dmask[masknan]["bound_p"], 'X', c="C3")
     # beautify
-    ax[n].set(xticks=xticks, xticklabels=xticklabels,
-              xlabel=r"MW Phase $\phi$", ylabel="Bound Patch")
+    ax[n].set(xticks=xticks, xticklabels=xticklabels)
+    #           xlabel=r"MW Phase $\phi$", ylabel="Bound Patch")
     ax[n].tick_params(which="minor", bottom="off")
     # ax[2] : phi vs convolution
     n = 2
@@ -775,8 +775,9 @@ def check_analysis(keys, combo, ax):
     ax[n].axhline(0, c="k")
     dmask.plot(x="phi", y="conv", ax=ax[n])
     # beautify
-    ax[n].set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1),
-              xlabel=r"MW Phase $\phi$", ylabel="Convolution")
+    ax[n].set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1), 
+              xlabel=r"MW Phase $\phi$ (rad.)")
+    #           ylabel="Convolution")
     ax[n].legend().remove()
     ax[n].tick_params(which="minor", bottom="off")
     plt.tight_layout()
@@ -821,8 +822,49 @@ def params_plot(params, keys, combo, ax):
         thstring = str(np.round(th_LRL/np.pi, 2)) + r"$\pi$"
     titlestring = ("dL = " + dLstring + "        " + "th_LRL = " + thstring)
     ax.set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1),
-           xlabel=r"MW Phase $\phi$", ylabel="Signal", title=titlestring)
+           xlabel=r"MW Phase $\phi$ (rad.)", ylabel="Signal",
+           title=titlestring)
     return
+
+
+def build_fitdata_from_params(obs):
+    """Given an observation from params DataFrame, pull out a, x0, y0 and use
+    model_func to the fit data.
+    Returns xs, ys: np.array"""
+    a = float(obs["a"])
+    x0 = float(obs["x0"])
+    y0 = float(obs["y0"])
+    xs = np.arange(0, 2*np.pi, np.pi/100)
+    ys = model_func(xs, a, x0, y0)
+    return xs, ys
+
+
+def up_down_plot(params, E0, Ep, ax):
+    # build mask for E0, Ep, dL = NaN (combined +/-1)
+    mask = [True]*len(params)
+    mask = mask & (params["E0"] == E0)
+    mask = mask & (params["Ep"] == Ep)
+    mask = mask & np.isnan(params["dL"])
+    # add th_LRL = 0, pi, NaN (combined 0,pi)
+    th_LRLs = np.sort(params["th_LRL"].unique())
+    mask0 = mask & (params["th_LRL"] == th_LRLs[0])
+    maskp = mask & (params["th_LRL"] == th_LRLs[1])
+    maskn = mask & np.isnan(params["th_LRL"])
+    if sum(mask0)>1 or sum(maskp)>1 or sum(maskn)>1:
+        print("Mask Error")
+    # plot 1/2 th_LRL = 0
+    obs = params[mask0]
+    xs, ys = build_fitdata_from_params(obs)
+    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = 0$", lw=2)
+    # plot 1/2 th_LRL = pi
+    obs = params[maskp]
+    xs, ys = build_fitdata_from_params(obs)
+    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = \pi$", lw=2)
+    # plot th_LRL = NaN (sum signal)
+    obs = params[maskn]
+    xs, ys = build_fitdata_from_params(obs)
+    ax.plot(xs, ys, label=r"Signal", lw=2)
+    return ax
 
 
 def build_report_pdf():
@@ -839,12 +881,30 @@ def build_report_pdf():
     # print("dL:\t", vals["dL"])
     # pick combo
     # plot
-    fig, ax = plt.subplots(nrows=7, ncols=4, figsize=(6*4, 7*3))
+    # fig, ax = plt.subplots(nrows=7, ncols=4, figsize=(6*4, 7*3))
+    fig = plt.figure(figsize=(11, 8.5))
+    gso = gridspec.GridSpec(2, 1)
+    gsi = gridspec.GridSpecFromSubplotSpec(
+            3, 4, subplot_spec=gso[0])
+    ax = np.array([[None]*4]*3)
     # dL = -1, th_LRL = 0
     combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    ax[2, 0] = fig.add_subplot(gsi[2, 0])
+    ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
+    ax[0, 0] = fig.add_subplot(gsi[0, 0], sharex=ax[2, 0])
+    for i in [1, 2, 3]:
+        ax[2, i] = fig.add_subplot(gsi[2, i], sharey=ax[2, 0])
+        ax[1, i] = fig.add_subplot(gsi[1, i], sharex=ax[2, i], sharey=ax[1, 0])
+        ax[0, i] = fig.add_subplot(gsi[0, i], sharex=ax[2, i], sharey=ax[0, 0])
+    axl = fig.add_subplot(gso[1])
     axes = [ax[0, 0], ax[1, 0], ax[2, 0]]
     data, params = check_analysis(keys, combo, axes)
+    ax[0, 0].set(ylabel=r"$E_{f}$ (GHz)")
+    ax[1, 0].set(ylabel="Bound")
+    ax[2, 0].set(ylabel="Conv")
+    xticks, xticklabels = xticks_2p()
+    ax[2, 0].set(xticks=xticks, xticklabels=xticklabels)
     # dL = +1, th_LRL = 0
     # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][0]]
     combo[2] = vals["dL"][1]
@@ -868,30 +928,36 @@ def build_report_pdf():
     data, params = check_analysis(keys, combo, axes)
     # dL = NaN, th_LRL = 0
     # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
-    combo[2] = np.NaN
-    combo[3] = vals["th_LRL"][0]
-    params_plot(params, keys, combo, ax[4, 0])
+    # combo[2] = np.NaN
+    # combo[3] = vals["th_LRL"][0]
+    axl = up_down_plot(params, combo[0], combo[1], axl)
+    axl.set(xticks=xticks, xticklabels=xticklabels)
+    axl.axvline(np.pi/6, c="k")
+    axl.axvline(7*np.pi/6, c="k")
+    axl.axhline(0, c="k")
+    axl.legend()
     # dL = NaN, th_LRL = pi
     # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][1]]
-    combo[2] = np.NaN
-    combo[3] = vals["th_LRL"][1]
-    params_plot(params, keys, combo, ax[4, 2])
+    # combo[2] = np.NaN
+    # combo[3] = vals["th_LRL"][1]
+    # params_plot(params, keys, combo, axl)
     # dL = NaN, th_LRL = NaN
     # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, np.NaN]
-    combo[2] = np.NaN
-    combo[3] = np.NaN
-    params_plot(params, keys, combo, ax[6, 0])
+    # combo[2] = np.NaN
+    # combo[3] = np.NaN
+    # params_plot(params, keys, combo, axl)
     # finalize figure
-    plt.suptitle("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
-                 "    " + "    " +
-                 "Ep = " + str(np.round(combo[1]/au["mVcm"], 2)) + " mV/cm")
-    for i in range(4):
-        ax[3, i].axis("off")
-        ax[5, i].axis("off")
-    for i in [1, 3]:
-        ax[4, i].axis("off")
-    for i in [1, 2, 3]:
-        ax[6, i].axis("off")
+    titlestring = ("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
+                   "    " + "    " +
+                   "Ep = " + str(np.round(combo[1]/au["mVcm"], 2)) + " mV/cm")
+    plt.suptitle(titlestring, size=20)
+    # for i in range(4):
+    #     ax[3, i].axis("off")
+    #     ax[5, i].axis("off")
+    # for i in [1, 3]:
+    #     ax[4, i].axis("off")
+    # for i in [1, 2, 3]:
+    #     ax[6, i].axis("off")
     plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig("check.pdf")
     plt.close(fig)
