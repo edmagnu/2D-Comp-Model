@@ -846,28 +846,40 @@ def build_report_pdf():
     axes = [ax[0, 0], ax[1, 0], ax[2, 0]]
     data, params = check_analysis(keys, combo, axes)
     # dL = +1, th_LRL = 0
-    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][0]]
+    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][0]]
+    combo[2] = vals["dL"][1]
+    combo[3] = vals["th_LRL"][0]
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
     axes = [ax[0, 1], ax[1, 1], ax[2, 1]]
     data, params = check_analysis(keys, combo, axes)
     # dL = -1, th_LRL = pi
-    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][1]]
+    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][1]]
+    combo[2] = vals["dL"][0]
+    combo[3] = vals["th_LRL"][1]
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
     axes = [ax[0, 2], ax[1, 2], ax[2, 2]]
     data, params = check_analysis(keys, combo, axes)
     # dL = +1, th_LRL = pi
-    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][1]]
+    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][1]]
+    combo[2] = vals["dL"][1]
+    combo[3] = vals["th_LRL"][1]
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
     axes = [ax[0, 3], ax[1, 3], ax[2, 3]]
     data, params = check_analysis(keys, combo, axes)
     # dL = NaN, th_LRL = 0
-    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
+    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
+    combo[2] = np.NaN
+    combo[3] = vals["th_LRL"][0]
     params_plot(params, keys, combo, ax[4, 0])
     # dL = NaN, th_LRL = pi
-    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][1]]
+    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][1]]
+    combo[2] = np.NaN
+    combo[3] = vals["th_LRL"][1]
     params_plot(params, keys, combo, ax[4, 2])
     # dL = NaN, th_LRL = NaN
-    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, np.NaN]
+    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, np.NaN]
+    combo[2] = np.NaN
+    combo[3] = np.NaN
     params_plot(params, keys, combo, ax[6, 0])
     # finalize figure
     plt.suptitle("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
