@@ -958,7 +958,7 @@ def build_report_pdf():
     #     ax[4, i].axis("off")
     # for i in [1, 2, 3]:
     #     ax[6, i].axis("off")
-    plt.tight_layout(rect=[0, 0, 1, 0.95])
+    plt.tight_layout(rect=[0, 0, 1, 0.95])  # make room for title
     plt.savefig("check.pdf")
     plt.close(fig)
     return data, params
