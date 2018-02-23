@@ -12,6 +12,7 @@ import matplotlib.gridspec as gridspec
 import os
 import itertools
 import scipy.optimize
+from PyPDF2 import PdfFileMerger
 
 
 def atomic_units():
@@ -895,19 +896,6 @@ def analysis_array_plot(data, E0, Ep, vals, keys, ax):
 
 def build_report_pdf(data, params, E0, Ep, vals, keys):
     au = atomic_units()
-    # get data
-    params = pd.read_csv("params_sums.txt", index_col=0)
-    data = pd.read_csv("data_fit.txt", index_col=0)
-    # build combos
-    # keys = ["E0", "Ep", "dL", "th_LRL"]
-    # combos, vals = combinations(params, keys)
-    # print("E0:\t", vals["E0"]/au["GHz"])
-    # print("Ep:\n", pd.Series(vals["Ep"]/au["mVcm"]))
-    # print("th_LRL:\t", vals["th_LRL"])
-    # print("dL:\t", vals["dL"])
-    # pick combo
-    # E0 = vals["E0"][0]
-    # Ep = vals["Ep"][0]
     # Build figure and Inner and Outer GridSpecs
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
@@ -950,22 +938,47 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
     plt.savefig(fname)
     # plt.savefig("analysis_reports\check.pdf")
     plt.close(fig)
-    return data, params
+    return fname
 
 
-def main():
+def build_all_reports():
     au = atomic_units()
     data = pd.read_csv("data_fit.txt", index_col=0)
     params = pd.read_csv("params_sums.txt", index_col=0)
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(params, keys)
     E0Eps = list(itertools.product(vals["E0"], vals["Ep"]))
+    record = pd.DataFrame()
     for i, [E0, Ep] in enumerate(E0Eps):
         print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
                 i+1, len(E0Eps), round(E0/au["GHz"],3), round(Ep/au["mVcm"])))
-        build_report_pdf(data, params, E0, Ep, vals, keys)
-    return
+        fname = build_report_pdf(data, params, E0, Ep, vals, keys)
+        fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
+                                         int(round(Ep/au["mVcm"])))
+        fname = os.path.join("analysis_reports", fname)
+        obs = pd.DataFrame({"E0": E0, "Ep": Ep, "fname": fname}, index=[i])
+        record = record.append(obs)
+    record = record.sort_values(by=["E0", "Ep"])
+    record.to_csv(os.path.join("analysis_reports", "record.txt"))
+
+
+def stitch_reports():
+    au = atomic_units()
+    fname = os.path.join("analysis_reports", "record.txt")
+    record = pd.read_csv(fname, index_col=0)
+    for E0 in record["E0"].unique():
+        fname = "E0{0}_master.pdf".format(int(round(E0/au["GHz"])))
+        fname = os.path.join("analysis_reports", fname)
+        mask = (record["E0"] == E0)
+        pdfs = list(record[mask]["fname"])
+        merger = PdfFileMerger()
+        for pdf in pdfs:
+            print(fname, "\t", pdf)
+            merger.append(pdf)
+        merger.write(fname)
+    return record
 
 
 # build_report_pdf()
-main()
+stitch_reports()
+# print(record)
