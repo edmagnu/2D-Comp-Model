@@ -854,15 +854,15 @@ def up_down_plot(params, E0, Ep, ax):
     # plot 1/2 th_LRL = 0
     obs = params[mask0]
     xs, ys = build_fitdata_from_params(obs)
-    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = 0$", lw=2)
+    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = 0$", lw=3)
     # plot 1/2 th_LRL = pi
     obs = params[maskp]
     xs, ys = build_fitdata_from_params(obs)
-    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = \pi$", lw=2)
+    ax.plot(xs, ys/2, label=r"$\theta_{LRL} = \pi$", lw=3)
     # plot th_LRL = NaN (sum signal)
     obs = params[maskn]
     xs, ys = build_fitdata_from_params(obs)
-    ax.plot(xs, ys, label=r"Signal", lw=2)
+    ax.plot(xs, ys, label=r"Signal", lw=3)
     return
 
 
@@ -893,26 +893,28 @@ def analysis_array_plot(data, E0, Ep, vals, keys, ax):
     return
 
 
-def build_report_pdf():
+def build_report_pdf(data, params, E0, Ep, vals, keys):
     au = atomic_units()
     # get data
     params = pd.read_csv("params_sums.txt", index_col=0)
     data = pd.read_csv("data_fit.txt", index_col=0)
     # build combos
-    keys = ["E0", "Ep", "dL", "th_LRL"]
-    combos, vals = combinations(params, keys)
+    # keys = ["E0", "Ep", "dL", "th_LRL"]
+    # combos, vals = combinations(params, keys)
     # print("E0:\t", vals["E0"]/au["GHz"])
     # print("Ep:\n", pd.Series(vals["Ep"]/au["mVcm"]))
     # print("th_LRL:\t", vals["th_LRL"])
     # print("dL:\t", vals["dL"])
     # pick combo
+    # E0 = vals["E0"][0]
+    # Ep = vals["Ep"][0]
     # Build figure and Inner and Outer GridSpecs
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
     gsi = gridspec.GridSpecFromSubplotSpec(
             3, 4, subplot_spec=gso[0])
     ax = np.array([[None]*4]*3)  # axes array for inner GridSpec
-    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    xticks, xticklabels = xticks_2p()  # retrieve custom xticks
     # Add subplots from ax array with appropriate shared axes and labels.
     ax[2, 0] = fig.add_subplot(gsi[2, 0])
     ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
@@ -921,22 +923,19 @@ def build_report_pdf():
         ax[2, i] = fig.add_subplot(gsi[2, i], sharey=ax[2, 0])
         ax[1, i] = fig.add_subplot(gsi[1, i], sharex=ax[2, i], sharey=ax[1, 0])
         ax[0, i] = fig.add_subplot(gsi[0, i], sharex=ax[2, i], sharey=ax[0, 0])
-    xticks, xticklabels = xticks_2p()
     ax[2, 0].set(xticks=xticks, xticklabels=xticklabels)
     axl = fig.add_subplot(gso[1])
     # Upper Plot Grid
-    E0 = vals["E0"][0]
-    Ep = vals["Ep"][0]
     analysis_array_plot(data, E0, Ep, vals, keys, ax)
     ax[0, 0].set(ylabel=r"$E_{f}$ (GHz)")
     ax[1, 0].set(ylabel="Bound")
     ax[2, 0].set(ylabel="Conv")
     # Lower Plot
-    up_down_plot(params, E0, Ep, axl)
-    axl.set(xticks=xticks, xticklabels=xticklabels)
     axl.axvline(np.pi/6, c="k")
     axl.axvline(7*np.pi/6, c="k")
     axl.axhline(0, c="k")
+    up_down_plot(params, E0, Ep, axl)
+    axl.set(xticks=xticks, xticklabels=xticklabels)
     # beautify
     axl.legend()
     titlestring = ("E0 = " + str(np.round(E0/au["GHz"], 2)) + " GHz" +
@@ -944,23 +943,29 @@ def build_report_pdf():
                    "Ep = " + str(np.round(Ep/au["mVcm"], 2)) + " mV/cm")
     plt.suptitle(titlestring, size=20)
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # make room for title
-    plt.savefig("check.pdf")
+    fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
+                                 int(round(Ep/au["mVcm"])))
+    fname = os.path.join("analysis_reports", fname)
+    print(fname)
+    plt.savefig(fname)
+    # plt.savefig("analysis_reports\check.pdf")
     plt.close(fig)
     return data, params
 
 
 def main():
-    # au = atomic_units()
-    # get data
+    au = atomic_units()
+    data = pd.read_csv("data_fit.txt", index_col=0)
     params = pd.read_csv("params_sums.txt", index_col=0)
-    # data = pd.read_csv("data_fit.txt", index_col=0)
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(params, keys)
-    combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
-    fig, ax = plt.subplots()
-    params_plot(params, keys, combo, ax)
+    E0Eps = list(itertools.product(vals["E0"], vals["Ep"]))
+    for i, [E0, Ep] in enumerate(E0Eps):
+        print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
+                i+1, len(E0Eps), round(E0/au["GHz"],3), round(Ep/au["mVcm"])))
+        build_report_pdf(data, params, E0, Ep, vals, keys)
     return
 
 
-build_report_pdf()
-# main()
+# build_report_pdf()
+main()
