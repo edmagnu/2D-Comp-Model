@@ -725,7 +725,6 @@ def check_analysis(keys, combo, ax):
     au = atomic_units()
     [E0, Ep, dL, th_LRL] = combo
     # read data
-    params = pd.read_csv("params_sums.txt", index_col=0)
     data = pd.read_csv("data_fit.txt", index_col=0)
     # mask out the combo
     mask = combo_mask(data, *combo)
@@ -781,7 +780,7 @@ def check_analysis(keys, combo, ax):
     ax[n].legend().remove()
     ax[n].tick_params(which="minor", bottom="off")
     plt.tight_layout()
-    return data, params
+    return data
 
 
 def params_plot(params, keys, combo, ax):
@@ -864,7 +863,34 @@ def up_down_plot(params, E0, Ep, ax):
     obs = params[maskn]
     xs, ys = build_fitdata_from_params(obs)
     ax.plot(xs, ys, label=r"Signal", lw=2)
-    return ax
+    return
+
+
+def analysis_array_plot(data, E0, Ep, vals, keys, ax):
+    """For a given E0, Ep, plots the data analysis pipeline onto a 3x4 array
+    (ax) of axes objects. Each column are Efinal -> Bound_p -> Convolution
+    vs phase plots for a particular dL = +/-1, th_LRL = 0,pi combination.
+    Returns None"""
+    # dL = -1, th_LRL = 0
+    combo = [E0, Ep, vals["dL"][0], vals["th_LRL"][0]]
+    axes = [ax[0, 0], ax[1, 0], ax[2, 0]]
+    check_analysis(keys, combo, axes)
+    # dL = +1, th_LRL = 0
+    combo[2] = vals["dL"][1]
+    combo[3] = vals["th_LRL"][0]
+    axes = [ax[0, 1], ax[1, 1], ax[2, 1]]
+    check_analysis(keys, combo, axes)
+    # dL = -1, th_LRL = pi
+    combo[2] = vals["dL"][0]
+    combo[3] = vals["th_LRL"][1]
+    axes = [ax[0, 2], ax[1, 2], ax[2, 2]]
+    check_analysis(keys, combo, axes)
+    # dL = +1, th_LRL = pi
+    combo[2] = vals["dL"][1]
+    combo[3] = vals["th_LRL"][1]
+    axes = [ax[0, 3], ax[1, 3], ax[2, 3]]
+    check_analysis(keys, combo, axes)
+    return
 
 
 def build_report_pdf():
@@ -880,16 +906,14 @@ def build_report_pdf():
     # print("th_LRL:\t", vals["th_LRL"])
     # print("dL:\t", vals["dL"])
     # pick combo
-    # plot
-    # fig, ax = plt.subplots(nrows=7, ncols=4, figsize=(6*4, 7*3))
+    # Build figure and Inner and Outer GridSpecs
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
     gsi = gridspec.GridSpecFromSubplotSpec(
             3, 4, subplot_spec=gso[0])
-    ax = np.array([[None]*4]*3)
-    # dL = -1, th_LRL = 0
-    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
+    ax = np.array([[None]*4]*3)  # axes array for inner GridSpec
     # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    # Add subplots from ax array with appropriate shared axes and labels.
     ax[2, 0] = fig.add_subplot(gsi[2, 0])
     ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
     ax[0, 0] = fig.add_subplot(gsi[0, 0], sharex=ax[2, 0])
@@ -897,67 +921,28 @@ def build_report_pdf():
         ax[2, i] = fig.add_subplot(gsi[2, i], sharey=ax[2, 0])
         ax[1, i] = fig.add_subplot(gsi[1, i], sharex=ax[2, i], sharey=ax[1, 0])
         ax[0, i] = fig.add_subplot(gsi[0, i], sharex=ax[2, i], sharey=ax[0, 0])
+    xticks, xticklabels = xticks_2p()
+    ax[2, 0].set(xticks=xticks, xticklabels=xticklabels)
     axl = fig.add_subplot(gso[1])
-    axes = [ax[0, 0], ax[1, 0], ax[2, 0]]
-    data, params = check_analysis(keys, combo, axes)
+    # Upper Plot Grid
+    E0 = vals["E0"][0]
+    Ep = vals["Ep"][0]
+    analysis_array_plot(data, E0, Ep, vals, keys, ax)
     ax[0, 0].set(ylabel=r"$E_{f}$ (GHz)")
     ax[1, 0].set(ylabel="Bound")
     ax[2, 0].set(ylabel="Conv")
-    xticks, xticklabels = xticks_2p()
-    ax[2, 0].set(xticks=xticks, xticklabels=xticklabels)
-    # dL = +1, th_LRL = 0
-    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][0]]
-    combo[2] = vals["dL"][1]
-    combo[3] = vals["th_LRL"][0]
-    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
-    axes = [ax[0, 1], ax[1, 1], ax[2, 1]]
-    data, params = check_analysis(keys, combo, axes)
-    # dL = -1, th_LRL = pi
-    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][1]]
-    combo[2] = vals["dL"][0]
-    combo[3] = vals["th_LRL"][1]
-    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
-    axes = [ax[0, 2], ax[1, 2], ax[2, 2]]
-    data, params = check_analysis(keys, combo, axes)
-    # dL = +1, th_LRL = pi
-    # combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][1], vals["th_LRL"][1]]
-    combo[2] = vals["dL"][1]
-    combo[3] = vals["th_LRL"][1]
-    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
-    axes = [ax[0, 3], ax[1, 3], ax[2, 3]]
-    data, params = check_analysis(keys, combo, axes)
-    # dL = NaN, th_LRL = 0
-    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][0]]
-    # combo[2] = np.NaN
-    # combo[3] = vals["th_LRL"][0]
-    axl = up_down_plot(params, combo[0], combo[1], axl)
+    # Lower Plot
+    up_down_plot(params, E0, Ep, axl)
     axl.set(xticks=xticks, xticklabels=xticklabels)
     axl.axvline(np.pi/6, c="k")
     axl.axvline(7*np.pi/6, c="k")
     axl.axhline(0, c="k")
+    # beautify
     axl.legend()
-    # dL = NaN, th_LRL = pi
-    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, vals["th_LRL"][1]]
-    # combo[2] = np.NaN
-    # combo[3] = vals["th_LRL"][1]
-    # params_plot(params, keys, combo, axl)
-    # dL = NaN, th_LRL = NaN
-    # combo = [vals["E0"][0], vals["Ep"][0], np.NaN, np.NaN]
-    # combo[2] = np.NaN
-    # combo[3] = np.NaN
-    # params_plot(params, keys, combo, axl)
-    # finalize figure
-    titlestring = ("E0 = " + str(np.round(combo[0]/au["GHz"], 2)) + " GHz" +
+    titlestring = ("E0 = " + str(np.round(E0/au["GHz"], 2)) + " GHz" +
                    "    " + "    " +
-                   "Ep = " + str(np.round(combo[1]/au["mVcm"], 2)) + " mV/cm")
+                   "Ep = " + str(np.round(Ep/au["mVcm"], 2)) + " mV/cm")
     plt.suptitle(titlestring, size=20)
-    # for i in range(4):
-    #     ax[3, i].axis("off")
-    #     ax[5, i].axis("off")
-    # for i in [1, 3]:
-    #     ax[4, i].axis("off")
-    # for i in [1, 2, 3]:
-    #     ax[6, i].axis("off")
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # make room for title
     plt.savefig("check.pdf")
     plt.close(fig)
