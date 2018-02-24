@@ -979,6 +979,75 @@ def stitch_reports():
     return record
 
 
+def phase_amp_plot():
+    au = atomic_units()
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    masknan = np.isnan(params["dL"]) & np.isnan(params["th_LRL"])
+    E0s = params[masknan]["E0"].unique()
+    plt.close()
+    fig, ax = plt.subplots(nrows=3, ncols=2, sharex='col', sharey='row')
+    # E0 = 0 GHz
+    E0 = E0s[1]
+    mask = masknan & (params["E0"] == E0)
+    data = params[mask].copy(deep=True)
+    data["a"] = data["a"]*2
+    data["Ep"] = data["Ep"]/au["mVcm"]
+    data.plot(x="Ep", y="x0", ax=ax[0, 1], kind="scatter")
+    ax[0, 1].tick_params(which="minor", left="off")
+    data.plot(x="Ep", y="a", ax=ax[1, 1], kind="scatter")
+    data.plot(x="Ep", y="y0", ax=ax[2, 1], kind="scatter")
+    ax[2, 1].set(xlabel="Pulsed Field (mV/cm)")
+    ax[0, 1].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
+    # E0 = -20 GHz
+    E0 = E0s[0]
+    mask = masknan & (params["E0"] == E0)
+    data = params[mask].copy(deep=True)
+    data["Ep"] = data["Ep"]/au["mVcm"]
+    data.plot(x="Ep", y="x0", ax=ax[0, 0], kind="scatter")
+    ax[0, 0].set(yticks=[np.pi/6, 7*np.pi/6],
+                 yticklabels=[r"$\pi/6$", "$7\pi/6$"])
+    ax[0, 0].tick_params(which="minor", left="off")
+    ax[0, 0].set(ylabel=r"Phase $\phi$ (rad)")
+    data.plot(x="Ep", y="a", ax=ax[1, 0], kind="scatter")
+    ax[1, 0].set(ylabel="Amp (pk-pk)")
+    data.plot(x="Ep", y="y0", ax=ax[2, 0], kind="scatter")
+    ax[2, 0].set(xlabel="Pulsed Field (mV/cm)", ylabel="Mean")
+    ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
+    return()
+
+
+def nanplot():
+    au = atomic_units()
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    E0s = data["E0"].unique()
+    E0s = np.sort(E0s)
+    Eps = data["Ep"].unique()
+    Eps = np.sort(Eps)
+    mask = (data["th_LRL"] == 0)
+    nan0 = np.array([np.NaN]*len(Eps))
+    mask0 = mask & (data["E0"] == E0s[0])
+    nan1 = np.array([np.NaN]*len(Eps))
+    mask1 = mask & (data["E0"] == E0s[1])
+    for i, Ep in enumerate(Eps):
+        maskep = (data["Ep"] == Ep)
+        mask = mask0 & maskep
+        nan0[i] = sum(np.isnan(data[mask]["enfinal"]))
+        mask = mask1 & maskep
+        nan1[i] = sum(np.isnan(data[mask]["enfinal"]))
+    plt.plot(Eps/au["mVcm"], 100*nan0/400,
+             label = r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"],2)))
+    plt.plot(Eps/au["mVcm"], 100*nan1/400,
+             label = r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"],2)))
+    plt.xlabel("Pulsed Field (mV/cm)")
+    plt.ylabel("% of Bad Uphill Runs")
+    bad = sum(np.isnan(data["enfinal"]))
+    plt.title("Total Bad Runs {0} / {1} or {2}%".format(
+            bad, len(data), round(100*bad/len(data)) ))
+    plt.legend()
+    return
+
 # build_report_pdf()
-stitch_reports()
+# stitch_reports()
 # print(record)
+# phase_amp_plot()
+nanplot()
