@@ -775,7 +775,7 @@ def check_analysis(keys, combo, ax):
     ax[n].axhline(0, c="k")
     dmask.plot(x="phi", y="conv", ax=ax[n])
     # beautify
-    ax[n].set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1), 
+    ax[n].set(xticks=xticks, xticklabels=xticklabels, ylim=(0, 1),
               xlabel=r"MW Phase $\phi$ (rad.)")
     #           ylabel="Convolution")
     ax[n].legend().remove()
@@ -850,7 +850,7 @@ def up_down_plot(params, E0, Ep, ax):
     mask0 = mask & (params["th_LRL"] == th_LRLs[0])
     maskp = mask & (params["th_LRL"] == th_LRLs[1])
     maskn = mask & np.isnan(params["th_LRL"])
-    if sum(mask0)>1 or sum(maskp)>1 or sum(maskn)>1:
+    if (sum(mask0) > 1) or (sum(maskp) > 1) or (sum(maskn) > 1):
         print("Mask Error")
     # plot 1/2 th_LRL = 0
     obs = params[mask0]
@@ -875,13 +875,7 @@ def build_report_pdf():
     # build combos
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(params, keys)
-    # print("E0:\t", vals["E0"]/au["GHz"])
-    # print("Ep:\n", pd.Series(vals["Ep"]/au["mVcm"]))
-    # print("th_LRL:\t", vals["th_LRL"])
-    # print("dL:\t", vals["dL"])
-    # pick combo
-    # plot
-    # fig, ax = plt.subplots(nrows=7, ncols=4, figsize=(6*4, 7*3))
+    # set up gridspec
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
     gsi = gridspec.GridSpecFromSubplotSpec(
@@ -889,7 +883,7 @@ def build_report_pdf():
     ax = np.array([[None]*4]*3)
     # dL = -1, th_LRL = 0
     combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
-    # print(combo[0]/au["GHz"], combo[1]/au["mVcm"], combo[2], combo[3])
+    # build ax array for upper and axl for lower.
     ax[2, 0] = fig.add_subplot(gsi[2, 0])
     ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
     ax[0, 0] = fig.add_subplot(gsi[0, 0], sharex=ax[2, 0])
