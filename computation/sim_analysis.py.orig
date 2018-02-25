@@ -896,14 +896,31 @@ def analysis_array_plot(data, E0, Ep, vals, keys, ax):
 
 def build_report_pdf(data, params, E0, Ep, vals, keys):
     au = atomic_units()
+<<<<<<< HEAD
+    # get data
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    # build combos
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(params, keys)
+    # set up gridspec
+=======
     # Build figure and Inner and Outer GridSpecs
+>>>>>>> d5e370199b982ccb0f34b08328a04f4e0bc97ea6
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
     gsi = gridspec.GridSpecFromSubplotSpec(
             3, 4, subplot_spec=gso[0])
+<<<<<<< HEAD
+    ax = np.array([[None]*4]*3)
+    # dL = -1, th_LRL = 0
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
+    # build ax array for upper and axl for lower.
+=======
     ax = np.array([[None]*4]*3)  # axes array for inner GridSpec
     xticks, xticklabels = xticks_2p()  # retrieve custom xticks
     # Add subplots from ax array with appropriate shared axes and labels.
+>>>>>>> d5e370199b982ccb0f34b08328a04f4e0bc97ea6
     ax[2, 0] = fig.add_subplot(gsi[2, 0])
     ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
     ax[0, 0] = fig.add_subplot(gsi[0, 0], sharex=ax[2, 0])
