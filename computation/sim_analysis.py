@@ -932,7 +932,7 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
     plt.suptitle(titlestring, size=20)
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # make room for title
     fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
-                                 int(round(Ep/au["mVcm"])))
+                                     int(round(Ep/au["mVcm"])))
     fname = os.path.join("analysis_reports", fname)
     print(fname)
     plt.savefig(fname)
@@ -951,7 +951,7 @@ def build_all_reports():
     record = pd.DataFrame()
     for i, [E0, Ep] in enumerate(E0Eps):
         print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
-                i+1, len(E0Eps), round(E0/au["GHz"],3), round(Ep/au["mVcm"])))
+                i+1, len(E0Eps), round(E0/au["GHz"], 3), round(Ep/au["mVcm"])))
         fname = build_report_pdf(data, params, E0, Ep, vals, keys)
         fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                          int(round(Ep/au["mVcm"])))
@@ -997,7 +997,7 @@ def phase_amp_plot():
     data.plot(x="Ep", y="a", ax=ax[1, 1], kind="scatter")
     data.plot(x="Ep", y="y0", ax=ax[2, 1], kind="scatter")
     ax[2, 1].set(xlabel="Pulsed Field (mV/cm)")
-    ax[0, 1].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
+    ax[0, 1].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"], 2))))
     # E0 = -20 GHz
     E0 = E0s[0]
     mask = masknan & (params["E0"] == E0)
@@ -1012,7 +1012,7 @@ def phase_amp_plot():
     ax[1, 0].set(ylabel="Amp (pk-pk)")
     data.plot(x="Ep", y="y0", ax=ax[2, 0], kind="scatter")
     ax[2, 0].set(xlabel="Pulsed Field (mV/cm)", ylabel="Mean")
-    ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
+    ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"], 2))))
     return()
 
 
@@ -1035,19 +1035,20 @@ def nanplot():
         mask = mask1 & maskep
         nan1[i] = sum(np.isnan(data[mask]["enfinal"]))
     plt.plot(Eps/au["mVcm"], 100*nan0/400,
-             label = r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"],2)))
+             label=r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"], 2)))
     plt.plot(Eps/au["mVcm"], 100*nan1/400,
-             label = r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"],2)))
+             label=r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"], 2)))
     plt.xlabel("Pulsed Field (mV/cm)")
     plt.ylabel("% of Bad Uphill Runs")
     bad = sum(np.isnan(data["enfinal"]))
     plt.title("Total Bad Runs {0} / {1} or {2}%".format(
-            bad, len(data), round(100*bad/len(data)) ))
+            bad, len(data), round(100*bad/len(data))))
     plt.legend()
     return
+
 
 # build_report_pdf()
 # stitch_reports()
 # print(record)
-# phase_amp_plot()
+phase_amp_plot()
 nanplot()
