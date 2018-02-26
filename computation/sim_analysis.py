@@ -1013,6 +1013,9 @@ def phase_amp_plot():
     data.plot(x="Ep", y="y0", ax=ax[2, 0], kind="scatter")
     ax[2, 0].set(xlabel="Pulsed Field (mV/cm)", ylabel="Mean")
     ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"], 2))))
+    # turn on grids
+    for i, j in itertools.product([0, 1], [0, 1, 2]):
+        ax[j, i].grid(True)
     return()
 
 
@@ -1034,6 +1037,7 @@ def nanplot():
         nan0[i] = sum(np.isnan(data[mask]["enfinal"]))
         mask = mask1 & maskep
         nan1[i] = sum(np.isnan(data[mask]["enfinal"]))
+    plt.figure()
     plt.plot(Eps/au["mVcm"], 100*nan0/400,
              label=r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"], 2)))
     plt.plot(Eps/au["mVcm"], 100*nan1/400,
@@ -1044,11 +1048,13 @@ def nanplot():
     plt.title("Total Bad Runs {0} / {1} or {2}%".format(
             bad, len(data), round(100*bad/len(data))))
     plt.legend()
+    plt.tight_layout()
+    plt.savefig("nanplot.pdf")
     return
 
 
-# build_report_pdf()
+# build_all_reports()
 # stitch_reports()
 # print(record)
-phase_amp_plot()
+# phase_amp_plot()
 nanplot()
