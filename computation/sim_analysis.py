@@ -971,7 +971,7 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
     fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                      int(round(Ep/au["mVcm"])))
     fname = os.path.join("analysis_reports", fname)
-    print(fname)
+    # print(fname)
     plt.savefig(fname)
     # plt.savefig("analysis_reports\check.pdf")
     plt.close(fig)
@@ -979,6 +979,12 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
 
 
 def build_all_reports():
+    """For each E0, Ep combination in params_sums.txt, make a .pdf showing
+    the analysis pipeline. Top half is a grid of each dL, th_LRL combination
+    going from enfinal -> bound_p -> conv. Bottom half is the dL sum showing
+    th_LRL = 0, pi on the same plot as the th_LRL sum. Outputs 'record.txt'
+    of the output file, E0, and Ep for each report. Reports are named as
+    E0<E0>_Ep<E0>.pdf"""
     au = atomic_units()
     data = pd.read_csv("data_fit.txt", index_col=0)
     params = pd.read_csv("params_sums.txt", index_col=0)
@@ -986,9 +992,14 @@ def build_all_reports():
     combos, vals = combinations(params, keys)
     E0Eps = list(itertools.product(vals["E0"], vals["Ep"]))
     record = pd.DataFrame()
+    funcname = "build_all_reports()"
+    total = len(E0Eps)
     for i, [E0, Ep] in enumerate(E0Eps):
-        print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
-                i+1, len(E0Eps), round(E0/au["GHz"], 3), round(Ep/au["mVcm"])))
+        # progress
+        progress(funcname, i, total)
+        # print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
+        #         i+1, len(E0Eps), round(E0/au["GHz"], 3),
+        #         round(Ep/au["mVcm"])))
         fname = build_report_pdf(data, params, E0, Ep, vals, keys)
         fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                          int(round(Ep/au["mVcm"])))
@@ -997,20 +1008,31 @@ def build_all_reports():
         record = record.append(obs)
     record = record.sort_values(by=["E0", "Ep"])
     record.to_csv(os.path.join("analysis_reports", "record.txt"))
+    return
 
 
 def stitch_reports():
+    """Using record.txt, find all reports for each unique energy and stitch
+    them into one document, with each report it's own page and ordered by
+    increasing pulsed field Ep. Compliled reports are named as
+    E0<E0>_master.pdf"""
     au = atomic_units()
     fname = os.path.join("analysis_reports", "record.txt")
     record = pd.read_csv(fname, index_col=0)
-    for E0 in record["E0"].unique():
+    funcname = "stitch_reports()"
+    E0s = record["E0"].unique()
+    for j, E0 in enumerate(E0s):
+        print("{0}: E0s: {1} / {2}".format(funcname, j, len(E0s)))
         fname = "E0{0}_master.pdf".format(int(round(E0/au["GHz"])))
         fname = os.path.join("analysis_reports", fname)
         mask = (record["E0"] == E0)
         pdfs = list(record[mask]["fname"])
         merger = PdfFileMerger()
-        for pdf in pdfs:
-            print(fname, "\t", pdf)
+        total = len(pdfs)
+        for i, pdf in enumerate(pdfs):
+            # print(fname, "\t", pdf)
+            # progress
+            progress(funcname, i, total)
             merger.append(pdf)
         merger.write(fname)
     return record
@@ -1107,10 +1129,13 @@ def assimilate_new_data():
     # data_conv.txt -> data_fit.txt"
     # build_fits()
     # data_fit.txt -> params.txt
-    build_params()
+    # build_params()
     # params.txt -> params_sum.txt
-    build_params_sums()
-    # data_fit.txt & params_sum.txt
+    # build_params_sums()
+    # data_fit.txt & params_sum.txt -> reports/*.pdf
+    # build_all_reports()
+    # reports/*.pdf -> reports/*_master.pdf
+    stitch_reports()
     return
 
 
