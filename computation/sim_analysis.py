@@ -559,6 +559,10 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
 
 
 def build_fits():
+    """Read DataFrame from data_conv.txt". Fit convolved data to model_func()
+    of the form y = y0 + a*cos(x - x0). Store these fit parametes, and the
+    fitted data in new keys in the DataFrame. Write to "data_fit.txt".
+    Returns data DataFrame"""
     # load convolved data
     data = pd.read_csv("data_conv.txt", index_col=0)
     # get combination list
@@ -573,10 +577,11 @@ def build_fits():
     data["y0_sigma"] = pd.Series([np.NaN]*len(data))
     data["fitconv"] = pd.Series([np.NaN]*len(data))
     # get fit parameters and data
-    print()
+    funcname = "build_fits()"
+    total = len(combos)
     for i, combo in enumerate(combos):
         # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        progress(funcname, i, total)
         # get masked phi and convolution data
         mask = combo_mask(data, *combo)
         phis = data[mask]["phi"]
@@ -588,7 +593,7 @@ def build_fits():
         if popt[0] < 0:
             popt[0] = -popt[0]
             popt[1] = (popt[1] - np.pi)
-        popt[1] = popt[1] & (2*np.pi)
+        popt[1] = popt[1] % (2*np.pi)
         # add to DataFrame
         data.loc[mask, "a"] = [popt[0]]*sum(mask)
         data.loc[mask, "a_sigma"] = [pconv[0, 0]]
@@ -635,6 +640,11 @@ def plot_sums(a1, a2, g1, g2, c1, c2, a, g):
 
 
 def build_params():
+    """Build a DataFrame that doesn't have every phase as an observation.
+    Instead, only stores parameters and fits. Read DataFrame from
+    "data_fit.txt", pull out individual datasets using E0, Ep, dL, th_LRL,
+    and store each in one obs with fit info. Write to "params.txt"
+    Returns data, params DataFrames"""
     # load fit data
     data = pd.read_csv("data_fit.txt", index_col=0)
     # get combination list
@@ -646,9 +656,11 @@ def build_params():
     params = pd.DataFrame()
     pkeys = ["Filename", "E0", "Ep", "dL", "th_LRL", "a", "x0", "y0",
              "a_sigma", "x0_sigma", "y0_sigma"]
+    funcname = "build_params()"
+    total = len(combos)
     for i, combo in enumerate(combos):
         # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        progress(funcname, i, total)
         # get mask
         mask = combo_mask(data, *combo)
         # pick one observation to fill params entry
@@ -658,8 +670,6 @@ def build_params():
     return data, params
 
 
-# build_params()
-# main script
 def dL_sums(params):
     # load data
     # data = pd.read_csv("data_fit.txt", index_col=0)
@@ -668,8 +678,6 @@ def dL_sums(params):
     keys = ["E0", "Ep", "th_LRL"]
     combos, vals = combinations(params, keys)
     for i, combo in enumerate(combos):
-        # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
         # build mask for particular combo
         mask = [True]*len(params)
         for i in range(len(keys)):
@@ -702,8 +710,6 @@ def th_LRL_sums(params):
     combos, vals = combinations(params, keys)
     for i, combo in enumerate(combos):
         # progress
-        # print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
-        print(i)
         # build mask for particular combo
         mask = [True]*len(params)
         for i in range(len(keys)):
@@ -736,9 +742,19 @@ def th_LRL_sums(params):
 
 
 def build_params_sums():
+    """Use params.txt and the Harmonic Addition Theorem to combine runs of the
+    same dL, and then of the same th_LRL into what experiment results should
+    look like. Results of combined dL store dL = NaN, and results of the same
+    th_LRL store dL = NaN and th_LRL = NaN. Writes to "params_sums.txt".
+    returns DataFrame params"""
+    funcname = "build_params_sums()"
+    print()
     params = pd.read_csv("params.txt", index_col=0)
+    print("\r{}: dL_sums()".format(funcname), end="\r")
     params = dL_sums(params)
+    print("\r{}: th_LRL_sums()".format(funcname), end="\r")
     params = th_LRL_sums(params)
+    print()
     params.to_csv("params_sums.txt")
     return params
 
@@ -1083,14 +1099,18 @@ def assimilate_new_data():
     build_all_reports -> stitch_reports()
     """
     # data files from "results" -> data_raw.txt
-    print("read_tidy()")
-    read_tidy()
+    # read_tidy()
     # data_raw.txt -> data_bound.txt
-    print("bound_patch()")
-    bound_patch()
+    # bound_patch()
     # data_bound.txt -> data_conv.txt"
-    print("build_convolve()")
-    build_convolve()
+    # build_convolve()
+    # data_conv.txt -> data_fit.txt"
+    # build_fits()
+    # data_fit.txt -> params.txt
+    build_params()
+    # params.txt -> params_sum.txt
+    build_params_sums()
+    # data_fit.txt & params_sum.txt
     return
 
 
