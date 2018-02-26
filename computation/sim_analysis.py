@@ -34,16 +34,32 @@ def read_metadata(fname):
     return meta
 
 
+def progress(source, i, total):
+    """print an updating report of 'source: i/total'"""
+    # start on fresh line
+    if i == 0:
+        print()
+    # progress
+    print("\r{0}: {1} / {2}".format(source, i+1, total), end="\r")
+    # newline if we've reached the end.
+    if i+1 == total:
+        print()
+    return
+
+
 def read_tidy():
     """Read in every result data file with metadata. Add every file's data into
-    a tidy DataFrame.
+    a tidy DataFrame and writes to "data_raw.txt"
     Returns pd.DataFrame"""
     # specify file
-    directory = ("C:\\Users\\edmag\\Documents\\Work\\" +
-                 "2D-Comp-Model\\computation\\results")
+    directory = ("results")
     flist = os.listdir(directory)
     data_m = pd.DataFrame()  # initialize DataFrame
-    for file in flist:
+    fnumber = len(flist)  # how many times to we need to run
+    funcname = "read_tidy()"
+    for i, file in enumerate(flist):
+        # progress
+        progress(funcname, i, fnumber)
         fname = directory + "\\" + file  # build file
         # print(fname)
         # load metadata and data
@@ -173,9 +189,12 @@ def bound_patch():
     data["bound_p"] = data["bound"]
     data.loc[mask_nan, "bound"] = np.NaN
     # replace NaN with average of surrounding.
-    for i in data[mask_nan].index:
-        print(i, "/", len(mask_nan), end="\r")  # progress
-        data = single_patch(data, i)  # run for each value
+    fnumber = sum(mask_nan)  # how many times do we need to run?
+    funcname = "bound_patch()"
+    for i, j in enumerate(data[mask_nan].index):
+        # progress
+        progress(funcname, i, fnumber)
+        data = single_patch(data, j)  # run for each value
     data.to_csv("data_bound.txt")
     return data
 
@@ -441,9 +460,11 @@ def build_convolve():
     # build dict of parameters
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(data, keys)
-    print()
+    funcname = "build_convolve()"
+    total = len(combos)
     for i, combo in enumerate(combos):
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        # progress
+        progress(funcname, i, total)
         data, mask, amlaser = convolution(data, *combo)
         if (sum(mask) != 200):
             print(sum(mask))
@@ -538,6 +559,10 @@ def test_fits(phi0=np.pi/6, dphi=np.pi/12, plot=True):
 
 
 def build_fits():
+    """Read DataFrame from data_conv.txt". Fit convolved data to model_func()
+    of the form y = y0 + a*cos(x - x0). Store these fit parametes, and the
+    fitted data in new keys in the DataFrame. Write to "data_fit.txt".
+    Returns data DataFrame"""
     # load convolved data
     data = pd.read_csv("data_conv.txt", index_col=0)
     # get combination list
@@ -552,10 +577,11 @@ def build_fits():
     data["y0_sigma"] = pd.Series([np.NaN]*len(data))
     data["fitconv"] = pd.Series([np.NaN]*len(data))
     # get fit parameters and data
-    print()
+    funcname = "build_fits()"
+    total = len(combos)
     for i, combo in enumerate(combos):
         # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        progress(funcname, i, total)
         # get masked phi and convolution data
         mask = combo_mask(data, *combo)
         phis = data[mask]["phi"]
@@ -567,7 +593,7 @@ def build_fits():
         if popt[0] < 0:
             popt[0] = -popt[0]
             popt[1] = (popt[1] - np.pi)
-        popt[1] = popt[1] & (2*np.pi)
+        popt[1] = popt[1] % (2*np.pi)
         # add to DataFrame
         data.loc[mask, "a"] = [popt[0]]*sum(mask)
         data.loc[mask, "a_sigma"] = [pconv[0, 0]]
@@ -614,6 +640,11 @@ def plot_sums(a1, a2, g1, g2, c1, c2, a, g):
 
 
 def build_params():
+    """Build a DataFrame that doesn't have every phase as an observation.
+    Instead, only stores parameters and fits. Read DataFrame from
+    "data_fit.txt", pull out individual datasets using E0, Ep, dL, th_LRL,
+    and store each in one obs with fit info. Write to "params.txt"
+    Returns data, params DataFrames"""
     # load fit data
     data = pd.read_csv("data_fit.txt", index_col=0)
     # get combination list
@@ -625,9 +656,11 @@ def build_params():
     params = pd.DataFrame()
     pkeys = ["Filename", "E0", "Ep", "dL", "th_LRL", "a", "x0", "y0",
              "a_sigma", "x0_sigma", "y0_sigma"]
+    funcname = "build_params()"
+    total = len(combos)
     for i, combo in enumerate(combos):
         # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        progress(funcname, i, total)
         # get mask
         mask = combo_mask(data, *combo)
         # pick one observation to fill params entry
@@ -637,8 +670,6 @@ def build_params():
     return data, params
 
 
-# build_params()
-# main script
 def dL_sums(params):
     # load data
     # data = pd.read_csv("data_fit.txt", index_col=0)
@@ -647,8 +678,6 @@ def dL_sums(params):
     keys = ["E0", "Ep", "th_LRL"]
     combos, vals = combinations(params, keys)
     for i, combo in enumerate(combos):
-        # progress
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
         # build mask for particular combo
         mask = [True]*len(params)
         for i in range(len(keys)):
@@ -681,8 +710,6 @@ def th_LRL_sums(params):
     combos, vals = combinations(params, keys)
     for i, combo in enumerate(combos):
         # progress
-        # print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
-        print(i)
         # build mask for particular combo
         mask = [True]*len(params)
         for i in range(len(keys)):
@@ -715,9 +742,19 @@ def th_LRL_sums(params):
 
 
 def build_params_sums():
+    """Use params.txt and the Harmonic Addition Theorem to combine runs of the
+    same dL, and then of the same th_LRL into what experiment results should
+    look like. Results of combined dL store dL = NaN, and results of the same
+    th_LRL store dL = NaN and th_LRL = NaN. Writes to "params_sums.txt".
+    returns DataFrame params"""
+    funcname = "build_params_sums()"
+    print()
     params = pd.read_csv("params.txt", index_col=0)
+    print("\r{}: dL_sums()".format(funcname), end="\r")
     params = dL_sums(params)
+    print("\r{}: th_LRL_sums()".format(funcname), end="\r")
     params = th_LRL_sums(params)
+    print()
     params.to_csv("params_sums.txt")
     return params
 
@@ -934,7 +971,7 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
     fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                      int(round(Ep/au["mVcm"])))
     fname = os.path.join("analysis_reports", fname)
-    print(fname)
+    # print(fname)
     plt.savefig(fname)
     # plt.savefig("analysis_reports\check.pdf")
     plt.close(fig)
@@ -942,6 +979,12 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
 
 
 def build_all_reports():
+    """For each E0, Ep combination in params_sums.txt, make a .pdf showing
+    the analysis pipeline. Top half is a grid of each dL, th_LRL combination
+    going from enfinal -> bound_p -> conv. Bottom half is the dL sum showing
+    th_LRL = 0, pi on the same plot as the th_LRL sum. Outputs 'record.txt'
+    of the output file, E0, and Ep for each report. Reports are named as
+    E0<E0>_Ep<E0>.pdf"""
     au = atomic_units()
     data = pd.read_csv("data_fit.txt", index_col=0)
     params = pd.read_csv("params_sums.txt", index_col=0)
@@ -949,9 +992,14 @@ def build_all_reports():
     combos, vals = combinations(params, keys)
     E0Eps = list(itertools.product(vals["E0"], vals["Ep"]))
     record = pd.DataFrame()
+    funcname = "build_all_reports()"
+    total = len(E0Eps)
     for i, [E0, Ep] in enumerate(E0Eps):
-        print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
-                i+1, len(E0Eps), round(E0/au["GHz"], 3), round(Ep/au["mVcm"])))
+        # progress
+        progress(funcname, i, total)
+        # print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
+        #         i+1, len(E0Eps), round(E0/au["GHz"], 3),
+        #         round(Ep/au["mVcm"])))
         fname = build_report_pdf(data, params, E0, Ep, vals, keys)
         fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                          int(round(Ep/au["mVcm"])))
@@ -960,20 +1008,31 @@ def build_all_reports():
         record = record.append(obs)
     record = record.sort_values(by=["E0", "Ep"])
     record.to_csv(os.path.join("analysis_reports", "record.txt"))
+    return
 
 
 def stitch_reports():
+    """Using record.txt, find all reports for each unique energy and stitch
+    them into one document, with each report it's own page and ordered by
+    increasing pulsed field Ep. Compliled reports are named as
+    E0<E0>_master.pdf"""
     au = atomic_units()
     fname = os.path.join("analysis_reports", "record.txt")
     record = pd.read_csv(fname, index_col=0)
-    for E0 in record["E0"].unique():
+    funcname = "stitch_reports()"
+    E0s = record["E0"].unique()
+    for j, E0 in enumerate(E0s):
+        print("{0}: E0s: {1} / {2}".format(funcname, j+1, len(E0s)))
         fname = "E0{0}_master.pdf".format(int(round(E0/au["GHz"])))
         fname = os.path.join("analysis_reports", fname)
         mask = (record["E0"] == E0)
         pdfs = list(record[mask]["fname"])
         merger = PdfFileMerger()
-        for pdf in pdfs:
-            print(fname, "\t", pdf)
+        total = len(pdfs)
+        for i, pdf in enumerate(pdfs):
+            # print(fname, "\t", pdf)
+            # progress
+            progress(funcname, i, total)
             merger.append(pdf)
         merger.write(fname)
     return record
@@ -1053,8 +1112,36 @@ def nanplot():
     return
 
 
+def assimilate_new_data():
+    """Run through every data, analysis, report building step in order to
+    update all relevant files with new raw simulation data sets from the
+    results folder.
+    read_tidy() -> bound_pathc() -> build_convolve() -> build_fits =>
+    build_params() -> build_params_sums() =>
+    build_all_reports -> stitch_reports()
+    """
+    # data files from "results" -> data_raw.txt
+    read_tidy()
+    # data_raw.txt -> data_bound.txt
+    bound_patch()
+    # data_bound.txt -> data_conv.txt"
+    build_convolve()
+    # data_conv.txt -> data_fit.txt"
+    build_fits()
+    # data_fit.txt -> params.txt
+    build_params()
+    # params.txt -> params_sum.txt
+    build_params_sums()
+    # data_fit.txt & params_sum.txt -> reports/*.pdf
+    build_all_reports()
+    # reports/*.pdf -> reports/*_master.pdf
+    stitch_reports()
+    return
+
+
 # build_all_reports()
 # stitch_reports()
 # print(record)
 # phase_amp_plot()
-nanplot()
+# nanplot()
+assimilate_new_data()
