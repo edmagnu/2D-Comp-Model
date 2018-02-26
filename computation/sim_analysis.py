@@ -1022,7 +1022,7 @@ def stitch_reports():
     funcname = "stitch_reports()"
     E0s = record["E0"].unique()
     for j, E0 in enumerate(E0s):
-        print("{0}: E0s: {1} / {2}".format(funcname, j, len(E0s)))
+        print("{0}: E0s: {1} / {2}".format(funcname, j+1, len(E0s)))
         fname = "E0{0}_master.pdf".format(int(round(E0/au["GHz"])))
         fname = os.path.join("analysis_reports", fname)
         mask = (record["E0"] == E0)
@@ -1121,19 +1121,19 @@ def assimilate_new_data():
     build_all_reports -> stitch_reports()
     """
     # data files from "results" -> data_raw.txt
-    # read_tidy()
+    read_tidy()
     # data_raw.txt -> data_bound.txt
-    # bound_patch()
+    bound_patch()
     # data_bound.txt -> data_conv.txt"
-    # build_convolve()
+    build_convolve()
     # data_conv.txt -> data_fit.txt"
-    # build_fits()
+    build_fits()
     # data_fit.txt -> params.txt
-    # build_params()
+    build_params()
     # params.txt -> params_sum.txt
-    # build_params_sums()
+    build_params_sums()
     # data_fit.txt & params_sum.txt -> reports/*.pdf
-    # build_all_reports()
+    build_all_reports()
     # reports/*.pdf -> reports/*_master.pdf
     stitch_reports()
     return
