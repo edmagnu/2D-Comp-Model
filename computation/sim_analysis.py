@@ -36,7 +36,14 @@ def read_metadata(fname):
 
 def progress(source, i, total):
     """print an updating report of 'source: i/total'"""
+    # start on fresh line
+    if i == 0:
+        print()
+    # progress
     print("\r{0}: {1} / {2}".format(source, i+1, total), end="\r")
+    # newline if we've reached the end.
+    if i+1 == total:
+        print()
     return
 
 
@@ -66,7 +73,6 @@ def read_tidy():
         data = data[["Filename", "E0", "Ep", "dL", "th_LRL", "phi", "enfinal"]]
         # enfinal_plot(data)
         data_m = data_m.append(data)  # append to master DataFrame
-    print()
     data_m.to_csv("data_raw.txt")
     return data_m
 
@@ -454,9 +460,11 @@ def build_convolve():
     # build dict of parameters
     keys = ["E0", "Ep", "dL", "th_LRL"]
     combos, vals = combinations(data, keys)
-    print()
+    funcname = "build_convolve()"
+    total = len(combos)
     for i, combo in enumerate(combos):
-        print("\r {0}/{1}".format(i+1, len(combos)), end="\r")
+        # progress
+        progress(funcname, i, total)
         data, mask, amlaser = convolution(data, *combo)
         if (sum(mask) != 200):
             print(sum(mask))
@@ -1080,6 +1088,9 @@ def assimilate_new_data():
     # data_raw.txt -> data_bound.txt
     print("bound_patch()")
     bound_patch()
+    # data_bound.txt -> data_conv.txt"
+    print("build_convolve()")
+    build_convolve()
     return
 
 
