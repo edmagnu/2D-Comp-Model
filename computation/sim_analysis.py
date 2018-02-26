@@ -1144,4 +1144,5 @@ def assimilate_new_data():
 # print(record)
 # phase_amp_plot()
 # nanplot()
-assimilate_new_data()
+# assimilate_new_data()
+nanplot()
