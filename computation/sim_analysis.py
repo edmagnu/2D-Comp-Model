@@ -36,14 +36,16 @@ def read_metadata(fname):
 
 def read_tidy():
     """Read in every result data file with metadata. Add every file's data into
-    a tidy DataFrame.
+    a tidy DataFrame and writes to "data_raw.txt"
     Returns pd.DataFrame"""
     # specify file
-    directory = ("C:\\Users\\edmag\\Documents\\Work\\" +
-                 "2D-Comp-Model\\computation\\results")
+    directory = ("results")
     flist = os.listdir(directory)
+    fnumber = len(flist)
     data_m = pd.DataFrame()  # initialize DataFrame
-    for file in flist:
+    for i, file in enumerate(flist):
+        # progress
+        print("\rread_tidy(): {0} / {1}".format(i+1, fnumber), end="\r")
         fname = directory + "\\" + file  # build file
         # print(fname)
         # load metadata and data
@@ -57,6 +59,7 @@ def read_tidy():
         data = data[["Filename", "E0", "Ep", "dL", "th_LRL", "phi", "enfinal"]]
         # enfinal_plot(data)
         data_m = data_m.append(data)  # append to master DataFrame
+    print()
     data_m.to_csv("data_raw.txt")
     return data_m
 
@@ -1053,8 +1056,22 @@ def nanplot():
     return
 
 
+def assimilate_new_data():
+    """Run through every data, analysis, report building step in order to
+    update all relevant files with new raw simulation data sets from the
+    results folder.
+    read_tidy() -> bound_pathc() -> build_convolve() -> build_fits =>
+    build_params() -> build_params_sums() =>
+    build_all_reports -> stitch_reports()
+    """
+    print("read_tidy()")
+    read_tidy()
+    return
+
+
 # build_all_reports()
 # stitch_reports()
 # print(record)
 # phase_amp_plot()
-nanplot()
+# nanplot()
+assimilate_new_data()
