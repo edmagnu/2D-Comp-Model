@@ -171,11 +171,11 @@ def Potential_Plot(ax):
     # plot potential
     potential.plot(x="z", y="V", linewidth="3", ax=ax)
     potential.plot(x="z", y="E", linewidth="3",
-                   label=r"$-E \cdot z$", ax=ax)
+                   label=r"$E \cdot z$", ax=ax)
     # add Field arrow
     acent = 0
     awidth = 0.1*zmax
-    ax.arrow(x=acent-awidth/2, y=15, dx=awidth, dy=0, width=1,
+    ax.arrow(x=acent+awidth/2, y=15, dx=-awidth, dy=0, width=1,
                 length_includes_head=True, head_width=5,
                 head_length=0.2*awidth, fc="k", ec="k")
     props = props = dict(boxstyle='round', color="white", alpha=1.0)
@@ -284,4 +284,5 @@ def Build_Plots():
 # potential, dlimit = DIL()
 # dil = DIL_table()
 # print(dil)
-Build_Plots()
+# Build_Plots()
+DIL_and_Potential_Plot()

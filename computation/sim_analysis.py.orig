@@ -896,14 +896,31 @@ def analysis_array_plot(data, E0, Ep, vals, keys, ax):
 
 def build_report_pdf(data, params, E0, Ep, vals, keys):
     au = atomic_units()
+<<<<<<< HEAD
+    # get data
+    params = pd.read_csv("params_sums.txt", index_col=0)
+    data = pd.read_csv("data_fit.txt", index_col=0)
+    # build combos
+    keys = ["E0", "Ep", "dL", "th_LRL"]
+    combos, vals = combinations(params, keys)
+    # set up gridspec
+=======
     # Build figure and Inner and Outer GridSpecs
+>>>>>>> d5e370199b982ccb0f34b08328a04f4e0bc97ea6
     fig = plt.figure(figsize=(11, 8.5))
     gso = gridspec.GridSpec(2, 1)
     gsi = gridspec.GridSpecFromSubplotSpec(
             3, 4, subplot_spec=gso[0])
+<<<<<<< HEAD
+    ax = np.array([[None]*4]*3)
+    # dL = -1, th_LRL = 0
+    combo = [vals["E0"][0], vals["Ep"][0], vals["dL"][0], vals["th_LRL"][0]]
+    # build ax array for upper and axl for lower.
+=======
     ax = np.array([[None]*4]*3)  # axes array for inner GridSpec
     xticks, xticklabels = xticks_2p()  # retrieve custom xticks
     # Add subplots from ax array with appropriate shared axes and labels.
+>>>>>>> d5e370199b982ccb0f34b08328a04f4e0bc97ea6
     ax[2, 0] = fig.add_subplot(gsi[2, 0])
     ax[1, 0] = fig.add_subplot(gsi[1, 0], sharex=ax[2, 0])
     ax[0, 0] = fig.add_subplot(gsi[0, 0], sharex=ax[2, 0])
@@ -932,7 +949,7 @@ def build_report_pdf(data, params, E0, Ep, vals, keys):
     plt.suptitle(titlestring, size=20)
     plt.tight_layout(rect=[0, 0, 1, 0.95])  # make room for title
     fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
-                                     int(round(Ep/au["mVcm"])))
+                                 int(round(Ep/au["mVcm"])))
     fname = os.path.join("analysis_reports", fname)
     print(fname)
     plt.savefig(fname)
@@ -951,7 +968,7 @@ def build_all_reports():
     record = pd.DataFrame()
     for i, [E0, Ep] in enumerate(E0Eps):
         print("{0}/{1}: \t E0 = {2} GHz \t Ep = {3} mV/cm".format(
-                i+1, len(E0Eps), round(E0/au["GHz"], 3), round(Ep/au["mVcm"])))
+                i+1, len(E0Eps), round(E0/au["GHz"],3), round(Ep/au["mVcm"])))
         fname = build_report_pdf(data, params, E0, Ep, vals, keys)
         fname = "E0{0}_Ep{1}.pdf".format(int(round(E0/au["GHz"])),
                                          int(round(Ep/au["mVcm"])))
@@ -997,7 +1014,7 @@ def phase_amp_plot():
     data.plot(x="Ep", y="a", ax=ax[1, 1], kind="scatter")
     data.plot(x="Ep", y="y0", ax=ax[2, 1], kind="scatter")
     ax[2, 1].set(xlabel="Pulsed Field (mV/cm)")
-    ax[0, 1].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"], 2))))
+    ax[0, 1].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
     # E0 = -20 GHz
     E0 = E0s[0]
     mask = masknan & (params["E0"] == E0)
@@ -1012,10 +1029,7 @@ def phase_amp_plot():
     ax[1, 0].set(ylabel="Amp (pk-pk)")
     data.plot(x="Ep", y="y0", ax=ax[2, 0], kind="scatter")
     ax[2, 0].set(xlabel="Pulsed Field (mV/cm)", ylabel="Mean")
-    ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"], 2))))
-    # turn on grids
-    for i, j in itertools.product([0, 1], [0, 1, 2]):
-        ax[j, i].grid(True)
+    ax[0, 0].set(title=(r"$W_0$ = {} GHz".format(np.round(E0/au["GHz"],2))))
     return()
 
 
@@ -1037,23 +1051,19 @@ def nanplot():
         nan0[i] = sum(np.isnan(data[mask]["enfinal"]))
         mask = mask1 & maskep
         nan1[i] = sum(np.isnan(data[mask]["enfinal"]))
-    plt.figure()
     plt.plot(Eps/au["mVcm"], 100*nan0/400,
-             label=r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"], 2)))
+             label = r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"],2)))
     plt.plot(Eps/au["mVcm"], 100*nan1/400,
-             label=r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"], 2)))
+             label = r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"],2)))
     plt.xlabel("Pulsed Field (mV/cm)")
     plt.ylabel("% of Bad Uphill Runs")
     bad = sum(np.isnan(data["enfinal"]))
     plt.title("Total Bad Runs {0} / {1} or {2}%".format(
-            bad, len(data), round(100*bad/len(data))))
+            bad, len(data), round(100*bad/len(data)) ))
     plt.legend()
-    plt.tight_layout()
-    plt.savefig("nanplot.pdf")
     return
 
-
-# build_all_reports()
+# build_report_pdf()
 # stitch_reports()
 # print(record)
 # phase_amp_plot()
