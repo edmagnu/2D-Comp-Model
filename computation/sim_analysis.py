@@ -34,6 +34,12 @@ def read_metadata(fname):
     return meta
 
 
+def progress(source, i, total):
+    """print an updating report of 'source: i/total'"""
+    print("\r{0}: {1} / {2}".format(source, i+1, total), end="\r")
+    return
+
+
 def read_tidy():
     """Read in every result data file with metadata. Add every file's data into
     a tidy DataFrame and writes to "data_raw.txt"
@@ -41,11 +47,12 @@ def read_tidy():
     # specify file
     directory = ("results")
     flist = os.listdir(directory)
-    fnumber = len(flist)
     data_m = pd.DataFrame()  # initialize DataFrame
+    fnumber = len(flist)  # how many times to we need to run
+    funcname = "read_tidy()"
     for i, file in enumerate(flist):
         # progress
-        print("\rread_tidy(): {0} / {1}".format(i+1, fnumber), end="\r")
+        progress(funcname, i, fnumber)
         fname = directory + "\\" + file  # build file
         # print(fname)
         # load metadata and data
@@ -176,9 +183,12 @@ def bound_patch():
     data["bound_p"] = data["bound"]
     data.loc[mask_nan, "bound"] = np.NaN
     # replace NaN with average of surrounding.
-    for i in data[mask_nan].index:
-        print(i, "/", len(mask_nan), end="\r")  # progress
-        data = single_patch(data, i)  # run for each value
+    fnumber = sum(mask_nan)  # how many times do we need to run?
+    funcname = "bound_patch()"
+    for i, j in enumerate(data[mask_nan].index):
+        # progress
+        progress(funcname, i, fnumber)
+        data = single_patch(data, j)  # run for each value
     data.to_csv("data_bound.txt")
     return data
 
@@ -1064,8 +1074,12 @@ def assimilate_new_data():
     build_params() -> build_params_sums() =>
     build_all_reports -> stitch_reports()
     """
+    # data files from "results" -> data_raw.txt
     print("read_tidy()")
     read_tidy()
+    # data_raw.txt -> data_bound.txt
+    print("bound_patch()")
+    bound_patch()
     return
 
 
