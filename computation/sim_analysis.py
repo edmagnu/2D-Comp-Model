@@ -1139,10 +1139,29 @@ def assimilate_new_data():
     return
 
 
+def main():
+    au = atomic_units()
+    data = pd.read_csv("data_fit.txt")
+    mask = np.isnan(data["enfinal"])
+    obs = data.loc[data[mask].index[1]]
+    # print(obs)
+    # print()
+    E0 = np.round(obs["E0"]/au["GHz"], 1)
+    Ep = np.round(obs["Ep"]/au["mVcm"], 2)
+    dL = np.round(obs["dL"], 1)
+    th_LRL = np.round(obs["th_LRL"]/np.pi, 1)
+    phi = np.round(obs["phi"]*100/np.pi, 1)
+    rstring = ("E0 = {0} GHz\nEp = {1} mV/cm\ndL = {2}\nth_LRL = {3} pi" +
+               "\nphi = ({4} / 100) pi")
+    print(rstring.format(E0, Ep, dL, th_LRL, phi))
+    return data
+
+
+data = main()
+
 # build_all_reports()
 # stitch_reports()
 # print(record)
 # phase_amp_plot()
 # nanplot()
-assimilate_new_data()
-# nanplot()
+# assimilate_new_data()
