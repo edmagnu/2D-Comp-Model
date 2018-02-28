@@ -189,7 +189,7 @@ def mod_m20_exp():
     return data
 
 
-def exp_m14_exp():
+def exp_m14_exp(ph_thresh=True):
     fname = os.path.join("..", "..", "Data", "StaPD-Analysis", "fits.txt")
     fits = pd.read_csv(fname, sep="\t", index_col=0)
     # mask out just DIL - 14 GHz
@@ -217,14 +217,29 @@ def exp_m14_exp():
     data["a"] = fsort["a"]
     data["x0"] = fsort["phi"]
     data["y0"] = fsort["y0"]
+    # phase threshold
+    if ph_thresh is True:
+        ph_th = 5*np.pi/6
+        # Amplitude
+        mask = (data["x0"] >= (ph_th - np.pi)) & (data["x0"] < ph_th)
+        data.loc[mask, "a"] = -data[mask]["a"]
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "a"] = -data[mask]["a"]
+        # phase
+        mask = (data["x0"] < (ph_th - np.pi))
+        data.loc[mask, "x0"] = data["x0"] + 2*np.pi
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "x0"] = data["x0"] - 2*np.pi
+    else:
+        ph_th = None
     # plot
     title = (r"Experiment: $W_0$ = DIL - 14 GHz")
-    phase_amp_mean_plot(data, title)
+    phase_amp_mean_plot(data, title, ph_th)
     plt.savefig(os.path.join("compare", "exp_m14.pdf"))
     return data
 
 
-def exp_p2_exp():
+def exp_p2_exp(ph_thresh=True):
     fname = os.path.join("..", "..", "Data", "StaPD-Analysis", "fits.txt")
     fits = pd.read_csv(fname, sep="\t", index_col=0)
     # read in all fits
@@ -252,9 +267,24 @@ def exp_p2_exp():
     data["a"] = fsort["a"]
     data["x0"] = fsort["phi"]
     data["y0"] = fsort["y0"]
+    # phase threshold
+    if ph_thresh is True:
+        ph_th = 6*np.pi/6
+        # Amplitude
+        mask = (data["x0"] >= (ph_th - np.pi)) & (data["x0"] < ph_th)
+        data.loc[mask, "a"] = -data[mask]["a"]
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "a"] = -data[mask]["a"]
+        # phase
+        mask = (data["x0"] < (ph_th - np.pi))
+        data.loc[mask, "x0"] = data["x0"] + 2*np.pi
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "x0"] = data["x0"] - 2*np.pi
+    else:
+        ph_th = None
     # plot
     title = (r"Experiment: $W_0$ = DIL + 2 GHz")
-    phase_amp_mean_plot(data, title)
+    phase_amp_mean_plot(data, title, ph_th)
     plt.savefig(os.path.join("compare", "exp_p2.pdf"))
     return data
 
@@ -270,20 +300,23 @@ def mirror_model(data):
     return data
 
 
-def phase_amp_mean_plot(data, title):
+def phase_amp_mean_plot(data, title, ph_th=None):
     """Standard plotting for computed or experimental data.
     data DataFrame must have "Ep", "x0", "a", and "y0" keys."""
     fig, ax = plt.subplots(nrows=3, sharex=True)
+    # line
+    if ph_th is not None:
+        ax[0].axhline(ph_th, color="k", lw=1)
     # plot data
-    data.plot(x="Ep", y="x0", ax=ax[0], style="o")
+    data.plot(x="Ep", y="x0", ax=ax[0], style="-o")
     data.plot(x="Ep", y="a", ax=ax[1], style="-o")
     data.plot(x="Ep", y="y0", ax=ax[2], style="-o")
     # beautify
     ax[0].tick_params(which="minor", left="off")
-    ax[0].set(xlim=(-200, 200),
+    ax[0].set(  # xlim=(-200, 200),
               yticks=[np.pi/6, 7*np.pi/6],
               yticklabels=[r"$\pi/6$", "$7\pi/6$"],
-              ylabel=r"Phase $\phi$ (rad)",
+              ylabel=r"Phase $\phi_0$ (rad)",
               ylim=(-np.pi*0.2, 2.2*np.pi))
     ax[0].set(title=title)
     ax[1].set(ylabel="Amp (pk-pk)")
@@ -298,9 +331,9 @@ def phase_amp_mean_plot(data, title):
 
 
 def comp_plots():
-    mod_p0_exp()
-    mod_m20_exp()
-    exp_p2_exp()
+    # mod_p0_exp()
+    # mod_m20_exp()
+    # exp_p2_exp()
     exp_m14_exp()
 
 
