@@ -240,8 +240,6 @@ def exp_m14_exp(ph_thresh=True):
 
 
 def exp_p2_exp(ph_thresh=True):
-    fname = os.path.join("..", "..", "Data", "StaPD-Analysis", "fits.txt")
-    fits = pd.read_csv(fname, sep="\t", index_col=0)
     # read in all fits
     fname = os.path.join("..", "..", "Data", "StaPD-Analysis", "fits.txt")
     fits = pd.read_csv(fname, sep="\t", index_col=0)
@@ -327,14 +325,107 @@ def phase_amp_mean_plot(data, title, ph_th=None):
         ax[i].legend()
         ax[i].legend().remove()
     plt.tight_layout()
-    return
+    return fig, ax
+
+def fsort_prep(fsort, excluded, title, ph_th=None, figname=None):
+    fsort.sort_values(by=["Static"], inplace=True)
+    # unmassage amps and phases
+    mask = (fsort["a"] < 0)
+    fsort.loc[mask, "a"] = -fsort[mask]["a"]
+    fsort.loc[mask, "phi"] = fsort[mask]["phi"] + np.pi
+    fsort["phi"] = fsort["phi"] % (2*np.pi)
+    # amplitude -> pk-pk
+    fsort["a"] = 2*fsort["a"]
+    # mV/cm
+    fsort["Static"] = fsort["Static"]*0.72*0.1
+    # manually exclude bad data runs
+    for fname in excluded:
+        fsort = fsort[fsort["Filename"] != fname]
+    # translate
+    data = pd.DataFrame()
+    data["Ep"] = fsort["Static"]
+    data["a"] = fsort["a"]
+    data["x0"] = fsort["phi"]
+    data["y0"] = fsort["y0"]
+    # phase threshold
+    if ph_th is not None:
+        # ph_th = 6*np.pi/6
+        # Amplitude
+        mask = (data["x0"] >= (ph_th - np.pi)) & (data["x0"] < ph_th)
+        data.loc[mask, "a"] = -data[mask]["a"]
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "a"] = -data[mask]["a"]
+        # phase
+        mask = (data["x0"] < (ph_th - np.pi))
+        data.loc[mask, "x0"] = data["x0"] + 2*np.pi
+        mask = (data["x0"] >= (ph_th + np.pi))
+        data.loc[mask, "x0"] = data["x0"] - 2*np.pi
+    # plot
+    fig, ax = phase_amp_mean_plot(data, title, ph_th)
+    # save
+    if figname is not None:
+        plt.savefig(os.path.join("compare", figname))
+    return data, fig, ax
 
 
 def comp_plots():
-    # mod_p0_exp()
-    # mod_m20_exp()
-    # exp_p2_exp()
-    exp_m14_exp()
-
+    # read in all fits
+    fname = os.path.join("..", "..", "Data", "StaPD-Analysis", "fits.txt")
+    fits = pd.read_csv(fname, sep="\t", index_col=0)
+    # DIL + 18 GHz
+    mask = (fits["DL-Pro"] == 365888.5) & (fits["Attn"] == 44.0)
+    fsort = fits[mask].copy(deep=True)
+    excluded = ["2016-10-01\\3_delay.txt", "2016-10-01\\4_delay.txt",
+                "2016-10-01\\9_delay.txt", "2016-10-01\\22_delay.txt"]
+    title = r"Experiment: $W_0$ = DIL + 18 GHz"
+    ph_th = 2/6*np.pi
+    figname = "exp_p18.pdf"
+    data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,\
+                               ph_th=ph_th, figname=figname)
+    # DIL + 2 GHz
+    mask = (fits["DL-Pro"] == 365872.6) & (fits["Attn"] == 44)
+    fsort = fits[mask].copy(deep=True)
+    excluded = ["2016-09-23\\3_delay.txt", "2016-09-23\\4_delay.txt"]
+    title = r"Experiment: $W_0$ = DIL + 2 GHz"
+    ph_th = 5.5/6*np.pi
+    figname = "exp_p2.pdf"
+    data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,\
+                               ph_th=ph_th, figname=figname)
+    # DIL - 14 GHz
+    mask = (fits["DL-Pro"] == 365856.7)
+    fsort = fits[mask].copy(deep=True)
+    excluded = ["2016-09-23\\5_delay.txt", "2016-09-23\\11_delay.txt",
+                "2016-09-23\\12_delay.txt", "2016-09-23\\16_delay.txt",
+                "2016-09-23\\17_delay.txt", "2016-09-26\\8_delay.txt",
+                "2016-09-26\\9_delay.txt"]
+    title = r"Experiment: $W_0$ = DIL - 14 GHz"
+    ph_th = 5.5/6*np.pi
+    figname = "exp_m14.pdf"
+    data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,
+                               ph_th=ph_th, figname=figname)
+    # DIL - 30 GHz
+    mask = (fits["DL-Pro"] == 365840.7)
+    fsort = fits[mask].sort_values(by=["Static"])
+    excluded = ["2016-09-27\\7_delay.txt", "2016-09-27\\15_delay.txt"]
+    title = r"Experiment: $W_0$ = DIL - 30 GHz"
+    ph_th = 5.5/6*np.pi
+    figname = "exp_m30.pdf"
+    data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,\
+                               ph_th=ph_th, figname=figname)
+    # DIL - 46 GHz
+    mask = (fits["DL-Pro"] == 365824.8) & (fits["Attn"] == 44.0)
+    fsort = fits[mask].copy(deep=True)
+    excluded = ["2016-09-28\\2_delay.txt", "2016-09-28\\3_delay.txt",
+                "2016-09-28\\4_delay.txt", "2016-09-28\\5_delay.txt",
+                "2016-09-28\\6_delay.txt", "2016-09-28\\7_delay.txt",
+                "2016-09-28\\8_delay.txt", "2016-09-28\\9_delay.txt",
+                "2016-09-28\\10_delay.txt", "2016-09-28\\11_delay.txt",
+                "2016-09-28\\27_delay.txt", "2016-10-01\\2_delay.txt"]
+    title = r"Experiment: $W_0$ = DIL - 46 GHz"
+    ph_th = 5.5/6*np.pi
+    figname = "exp_m46.pdf"
+    data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,\
+                               ph_th=ph_th, figname=figname)
+    return
 
 comp_plots()
