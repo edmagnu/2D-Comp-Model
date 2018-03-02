@@ -314,8 +314,8 @@ def phase_amp_mean_plot(data, title, ph_th=None):
     ax[0].set(  # xlim=(-200, 200),
               yticks=[np.pi/6, 7*np.pi/6],
               yticklabels=[r"$\pi/6$", "$7\pi/6$"],
-              ylabel=r"Phase $\phi_0$ (rad)",
-              ylim=(-np.pi*0.2, 2.2*np.pi))
+              ylabel=r"Phase $\phi_0$ (rad)")
+              # ylim=(-np.pi*0.2, 2.2*np.pi))
     ax[0].set(title=title)
     ax[1].set(ylabel="Amp (pk-pk)")
     ax[2].set(xlabel="Pulsed Field (mV/cm)", ylabel="Mean")
@@ -427,5 +427,6 @@ def comp_plots():
     data, fig, ax = fsort_prep(fsort=fsort, excluded=excluded, title=title,\
                                ph_th=ph_th, figname=figname)
     return
+
 
 comp_plots()

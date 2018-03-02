@@ -460,7 +460,7 @@ def goldylocks():
     return data
 
 
-def uphill_figure():
+def uphill_figure(ax):
     au = atomic_units()
     # data = read_tidy_binding()
     data = pd.read_csv("data_raw.txt", index_col=0)
@@ -474,7 +474,7 @@ def uphill_figure():
     picked = picked[(picked["Dir"] == -1)]
     picked["W"] = picked["W"]/au["GHz"]
     picked["field"] = picked["field"]/au["mVcm"]
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
     # ----------
     # fill between tb & tplus
     mask = (picked["kind"] == "tb=20")
@@ -562,7 +562,7 @@ def uphill_figure():
     ax.plot([0, 0], [fcut, 100], "k-", linewidth=2)
     ax.axhline(0, color="k", linewidth=1)
     # make it pretty
-    ax.set(xlabel=r"$E_{orbit} = E_0 + \Delta E_{MW}$ (GHz)",
+    ax.set(xlabel=r"$E_{orbit} = W_0 + \Delta E_{MW}$ (GHz)",
            ylabel="Field (mV/cm)", title="Uphill Electrons", xlim=(-100, 100),
            ylim=(0, 100))
     ax.legend().remove()
@@ -573,9 +573,9 @@ def uphill_figure():
     ax.text(90, 55, "(c)", bbox=props)
     ax.text(90, 32, "(d)", bbox=props)
     ax.text(90, 10, "(e)", bbox=props)
-    plt.tight_layout()
-    plt.savefig("uphill_orbits.pdf")
-    return picked
+    # plt.tight_layout()
+    # plt.savefig("uphill_orbits.pdf")
+    return ax
 
 
 def build_data_raw():
@@ -599,7 +599,7 @@ def build_picks():
     return data, picked
 
 
-def downhill_figure():
+def downhill_figure(ax):
     au = atomic_units()
     # data
     data = pd.read_csv("data_raw.txt", index_col=0)
@@ -610,7 +610,7 @@ def downhill_figure():
     picked["W"] = picked["W"]/au["GHz"]
     picked["field"] = picked["field"]/au["mVcm"]
     # plots
-    fig, ax = plt.subplots()
+    # fig, ax = plt.subplots()
     # tt = 10
     mask = (picked["kind"] == "tt=10")
     picked10 = picked[mask]
@@ -668,28 +668,25 @@ def downhill_figure():
     ax.text(5, 55, "(e)", bbox=props)
     ax.text(-12, 2, "(d)", bbox=props)
     # pretty
-    ax.set(xlabel=r"$E_{orbit} = E_0 + \Delta E_{MW}$ (GHz)",
+    ax.set(xlabel=r"$E_{orbit} = W_0 + \Delta E_{MW}$ (GHz)",
            ylabel="Field (mV/cm)", title="Downhill Electrons", xlim=(-50, 10),
            ylim=(0, 60))
     ax.legend().remove()
-    plt.savefig("downhill_oribts.pdf")
-    return data, picked
+    # plt.savefig("downhill_oribts.pdf")
+    return ax
 
 
 def main():
-    au = atomic_units()
-    data = pd.read_csv("data_raw.txt", index_col=0)
-    data = data[data["Dir"] == 1].copy(deep=True)
-    fig, ax = plt.subplots()
-    W = data["W"].unique()[150]
-    print("W = ", np.round(W/au["GHz"], 2), " GHz")
-    mask = (data["W"] == W)
-    ax.plot(data[mask]["field"]/au["mVcm"], data[mask]["tt"]/au["ns"])
+    fig, ax = plt.subplots(ncols=2, figsize=(6,3))
+    ax[1] = downhill_figure(ax[1])
+    ax[0] = uphill_figure(ax[0])
+    plt.tight_layout()
+    plt.savefig("up_and_down_orbits.pdf")
     return
 
 
 # build_data_raw()
 # build_picks()
-uphill_figure()
-downhill_figure()
-# main()
+# uphill_figure()
+# downhill_figure()
+main()

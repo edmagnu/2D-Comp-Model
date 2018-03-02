@@ -116,7 +116,7 @@ def DIL():
     ax[0].set_ylabel("Energy")
     ax[0].legend(loc=2, framealpha=1)
     # add (a) box
-    props = props = dict(boxstyle='round', facecolor="white", alpha=1.0)
+    props = dict(boxstyle='round', facecolor="white", alpha=1.0)
     ax[0].text(0.95, 0.95, "(a)", transform=ax[0].transAxes, fontsize=14,
                verticalalignment="top", horizontalalignment="right",
                bbox=props)
