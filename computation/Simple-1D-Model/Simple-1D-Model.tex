@@ -1,0 +1,90 @@
+\documentclass[aps,pra,preprint,groupedaddress]{revtex4-1}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\begin{document}
+
+\title{Simple 1D Step-wise Model}
+
+\author{Eric Magnuson}
+\email[]{edm5gb@virginia.edu}
+\affiliation{University of Virginia, Department of Physics}
+\date{\today}
+
+\begin{abstract}
+We can simulate the interaction of highly excited Rydberg states with static and microwave fields by a step-wise simulation. \textbf{(1)} The electron exchanges energy with MW field as it initially leaves the core ($\Delta W_i$). \textbf{(2)} Then it either ionizes, or takes a certain amount of time to return to the core ($2t_T$). \textbf{(3)} If it returns, it exchanges an essentially random energy as it slingshots around the core )($\Delta W_s$). From here, the process repeats returning to step \textbf{(2)} until the electron ionizes or the final time has been reached. Integrating equations of motion gives good analytic approximations for energy exchange as a function of MW phase $\Delta W_{i,s}(\phi)$, and ionization conditions can be expressed analytically. Turning time as a function of static field and initial energy $t_T (E_p, W_0)$ can be found by numerical integration of equations of motion. Solving a sufficiently dense grid over a large enough range of fields and energies allows a quick interpolation to find any needed turning time. In this manner, a crude model can be constructed with very light computational requirements. This allows denser exploration of parameters and better Monte Carlo statistics.
+\end{abstract}
+
+\maketitle
+
+\section{\label{sec:AU}Atomic Units}
+
+All calculations are presented in atomic units. Useful atomic units, found in Rydberg Atoms by Tom Gallagher \emph{(CITE)}:
+\begin{align*}
+ & \text{Energy} & E_{AU} & & & 4.35974417 \cdot 10^{-18} ~ \text{J} \\
+ & \text{Time} & t_{AU} & & & 2.418884326505 \cdot 10^{-17} ~ \text{s} \\
+ & \text{Field} & f_{AU} & & & 5.14220652 \cdot 10^{11} ~ \text{V/m}
+\end{align*}
+After calculations, it's useful to transform back to lab units.
+\begin{align*}
+\text{1 GHz} & = 1.51983 \cdot 10^{-7} \cdot E_{AU} \\
+\text{1 ns} & = 4.13414 \cdot 10^7 \cdot t_{AU} \\
+\text{1 mV/cm} & = 1.94469 \cdot 10^{-13} \cdot f_{AU}
+\end{align*}
+
+\section{\label{sec:over}Overview}
+
+The basic concept is to \textbf{(1)} Have the electron exchange some amount of energy based on it's launch phase $\Delta W_0 (\phi_0)$. Then, \textbf{(2)} either the electron ionizes, the stopping time $t_f$ is reached during it's orbit, or it returns to the core after some time $2 t_T$. Then \textbf{(3)} the electron slingshots around the core at a random phase of the microwave (MW) field $phi_s$ and exchanges $\Delta W_s (\phi_s)$. At this point, the simulation loops back to \textbf{(2)} until an end condition is reached.
+
+In steps \textbf{(1)} and \textbf{(3)}, the magnitudes of the energy exchange can be found by integrating the equations of motion in the Coulomb potential and MW fields $E_{mw}$. The static field $E_p$ is negligible here. These calculations find
+\begin{align}
+\Delta W_0(\phi_0) & = \pm \frac{3}{2} \frac{E_{MW}}{\omega^{2/3}} \cdot \cos{(\phi_0 - \Delta \phi)} \quad \Delta \phi = \frac{\pi}{6} \\
+\Delta W_s(\phi_s) & = \pm \sqrt{3} \frac{3}{2} \frac{E_{MW}}{\omega^{2/3}} \cdot \cos{\phi_s}
+\end{align}
+
+In step \textbf{(2)} The ionization of ``uphill'' electrons climbing the static field potential is impossible until the static field is turned off. The ionization of downhill electrons is known classically as
+\begin{align}
+W_{ionize} & = -2 \sqrt{E_p}
+\end{align}
+The turning time $t_T (E_p, W_i)$,  can be calculated for any given static field $E_p$ and initial energy $W_0$ by numerical integration. For ``uphill'' electrons climbing the static field potential:
+\begin{align}
+t_{T} & = -\int_{z_i}^{z_T} 1/\sqrt{2(W_i - 1/z + E_p z)} \cdot dz \label{eq:uptt} \\
+z_i & = -6 \label{eq:upzi} \\
+z_f & = -\frac{1}{2E_p} (W_i + \sqrt{W_i^2 + 4E_p}) \label{eq:upzf}
+\end{align}
+For downhill electrons sliding down the static field potential
+\begin{align}
+t_{T} & = \int_{z_i}^{z_T} 1/\sqrt{2(W_i + 1/z + E_p z)} \cdot dz \label{eq:dntt} \\
+z_i & = 6 \label{eq:dnzi} \\
+z_f & = -\frac{1}{2E_p} (W_i + \sqrt{W_i^2 - 4E_p}) \label{eq:dnzf}
+\end{align}
+If the iteration of step \textbf{(2)} reaches the ending time $t_F$, electrons with $W_i \geq 0$ are in an uncertain state. Whether the final electron is bound or ionized can be determined by numerical integration of binding times $t_B$. Replace the $z_f$ in Eqs.~(\ref{eq:upzf}),~(\ref{eq:dnzf}) with
+\begin{align}
+t_B & = \pm \int_{z_i}^{z_T} 1/\sqrt{2(W_0 \pm 1/z + E_p z} \cdot dz \\
+z_i & = \pm 6 \\
+z_f & = \pm W/f \\
+\end{align}
+The electron is bound if
+\begin{equation}
+t_B \leq t_F \leq 2 t_T - t_B
+\end{equation}
+By calculating $t_T(E_p, W_i)$ and $t_B(E_p, W_i)$ over a dense enough matrix covering a wide enough range of $(E_p, W_i)$, an interpolation can give values for any $(E_p, W_i)$.
+
+With this information, a computer can be instructed to execute this simple model for a particular $W_{0}$, $E_p$ and $\phi_0$.
+\begin{enumerate}
+	\item $W_i = W_{0}$ and $t_i = 0$.
+	\item $W_i = W_i + \Delta W_0(\phi_0)$
+	\item Check if ionizing for downhill electrons. End if ionized. \label{item:ion}
+	\item Lookup $t_T(W_i, E_p)$
+	\item If $t_i + 2t_T \geq t_F$, check if bound. If $W_i>0$, check from $t_B \leq t_F - t_i \leq 2 t_T - t_B$. End.
+	\item $t_i = t_i + 2*t_T$
+	\item $\phi_s = \text{Rand}(0, 2\pi)$
+	\item $W_i = W_i + \Delta W_s (\phi_s)$
+	\item Return to step \ref{item:ion}
+\end{enumerate}
+% \begin{figure}
+% \includegraphics[width=\textwidth]{computation/DIL_and_Potential}
+% \caption{\label{fig:DIL} Applying a static field depresses the potential barrier an electron sees, leading to a classical depressed ionization limit (DIL). \textbf{(a)} Total potential seen by an electron in a static field. Electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL against applied static field.}
+% \end{figure}
+
+\end{document}
