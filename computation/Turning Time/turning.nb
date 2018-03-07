@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[    111517,       2682]
-NotebookOptionsPosition[    107979,       2556]
-NotebookOutlinePosition[    108326,       2571]
-CellTagsIndexPosition[    108283,       2568]
+NotebookDataLength[    113461,       2728]
+NotebookOptionsPosition[    109801,       2598]
+NotebookOutlinePosition[    110148,       2613]
+CellTagsIndexPosition[    110105,       2610]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -1045,6 +1045,8 @@ Cell["Uphill Bulk", "Subsection",
   3.726804894010404*^9}, {3.7268125603079305`*^9, 3.7268125611675625`*^9}},
  ExpressionUUID -> "b57ad6e3-069c-40eb-a563-2049d1f801f0"],
 
+Cell[CellGroupData[{
+
 Cell[BoxData[{
  RowBox[{
   RowBox[{"<<", "ComputerArithmetic`"}], 
@@ -1126,12 +1128,13 @@ Cell[BoxData[{
    RowBox[{"Print", "[", 
     RowBox[{"\"\<1 mV/cm = \>\"", ",", "fAU1mVcm", ",", "\"\< A.U.\>\""}], 
     "]"}], " ", "*)"}], "\[IndentingNewLine]", 
-  RowBox[{"(*", " ", "Execute", " ", "*)"}], "\[IndentingNewLine]", 
-  RowBox[{"(*", " ", 
-   RowBox[{"folder", "=", "\"\<binding_0\>\""}], " ", 
-   "*)"}]}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", "Execute", " ", "*)"}]}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"folder", "=", "\"\<test\>\""}], ";"}], "\[IndentingNewLine]", 
+  RowBox[{"folder", "=", "\"\<binding_0\>\""}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"folder", "=", "\"\<test\>\""}], ";"}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"fields", "=", 
@@ -1489,8 +1492,31 @@ energy.\>\"", "<>", "\"\<\\n\>\""}], ",", "\[IndentingNewLine]",
    3.729367735132036*^9}, {3.729367773028204*^9, 3.7293677736672406`*^9}, {
    3.729367862850342*^9, 3.729367912338172*^9}, {3.729368053146226*^9, 
    3.72936808206488*^9}, {3.729368212288328*^9, 3.7293682159045353`*^9}, {
-   3.729371092605073*^9, 3.7293711006685343`*^9}},
+   3.729371092605073*^9, 3.7293711006685343`*^9}, {3.7293711326203613`*^9, 
+   3.729371158379835*^9}},
  ExpressionUUID -> "6d26990d-8565-42cb-bdc9-ffa4068b4a70"],
+
+Cell[BoxData["\<\"binding_0\"\>"], "Output",
+ CellChangeTimes->{3.729371205250516*^9}],
+
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"NIntegrate", "::", "ncvb"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"NIntegrate failed to converge to prescribed accuracy after \
+\\!\\(\\*RowBox[{\\\"9\\\"}]\\) recursive bisections in \
+\\!\\(\\*RowBox[{\\\"z\\\"}]\\) near \\!\\(\\*RowBox[{\\\"{\\\", \\\"z\\\", \
+\\\"}\\\"}]\\) = \\!\\(\\*RowBox[{\\\"{\\\", RowBox[{\\\"-\\\", \
+\\\"22608.34927562699970464005826760629791483125927697983570396900177`65.\
+954589770191\\\"}], \\\"}\\\"}]\\). NIntegrate obtained \
+\\!\\(\\*RowBox[{\\\"3.775645545577362`*^6\\\", \\\"-\\\", \
+RowBox[{\\\"1.7497984043773642`\\\", \\\" \\\", \\\"\[ImaginaryI]\\\"}]}]\\) \
+and \\!\\(\\*RowBox[{\\\"4.175969639615895`\\\"}]\\) for the integral and \
+error estimates.\"\>"}]], "Message", "MSG",
+ ShowCellLabel->True,
+ CellChangeTimes->{3.729371207961671*^9}]
+}, Open  ]],
 
 Cell[CellGroupData[{
 
@@ -1980,22 +2006,13 @@ Cell[BoxData[{
    RowBox[{"Print", "[", 
     RowBox[{"\"\<1 mV/cm = \>\"", ",", "fAU1mVcm", ",", "\"\< A.U.\>\""}], 
     "]"}], " ", "*)"}], "\[IndentingNewLine]", 
-  RowBox[{"(*", " ", "Execute", " ", "*)"}], "\[IndentingNewLine]", 
-  RowBox[{"(*", " ", 
-   RowBox[{
-    RowBox[{"folder", "=", "\"\<binding_0\>\""}], ";"}], " ", 
-   "*)"}]}], "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", "Execute", " ", "*)"}]}], "\[IndentingNewLine]", 
  RowBox[{
-  RowBox[{"folder", "=", "\"\<test\>\""}], "\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"folder", "=", "\"\<binding_0\>\""}], ";"}], "\[IndentingNewLine]", 
   RowBox[{"(*", " ", 
-   RowBox[{
-    RowBox[{"fields", "=", 
-     RowBox[{"Table", "[", 
-      RowBox[{
-       RowBox[{"i", "*", "fAU1mVcm"}], ",", 
-       RowBox[{"{", 
-        RowBox[{"i", ",", "0", ",", "300", ",", "1"}], "}"}]}], "]"}]}], 
-    ";"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+   RowBox[{"folder", "=", "\"\<test\>\""}], " ", 
+   "*)"}]}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{
    RowBox[{"fields", "=", 
@@ -2003,8 +2020,27 @@ Cell[BoxData[{
      RowBox[{
       RowBox[{"i", "*", "fAU1mVcm"}], ",", 
       RowBox[{"{", 
-       RowBox[{"i", ",", "0", ",", "300", ",", "50"}], "}"}]}], "]"}]}], 
-   ";"}], "\[IndentingNewLine]", 
+       RowBox[{"i", ",", "0", ",", "300", ",", "1"}], "}"}]}], "]"}]}], ";"}],
+   "\[IndentingNewLine]", 
+  RowBox[{"(*", " ", 
+   RowBox[{
+    RowBox[{"fields", "=", 
+     RowBox[{"Table", "[", 
+      RowBox[{
+       RowBox[{"i", "*", "fAU1mVcm"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"i", ",", "0", ",", "300", ",", "50"}], "}"}]}], "]"}]}], 
+    ";"}], " ", "*)"}]}], "\[IndentingNewLine]", 
+ RowBox[{
+  RowBox[{
+   RowBox[{"energies", "=", 
+    RowBox[{"Table", "[", 
+     RowBox[{
+      RowBox[{"i", "*", "enAU1GHz"}], ",", 
+      RowBox[{"{", 
+       RowBox[{"i", ",", 
+        RowBox[{"-", "300"}], ",", "300", ",", "1"}], "}"}]}], "]"}]}], ";"}],
+   "\[IndentingNewLine]", 
   RowBox[{"(*", " ", 
    RowBox[{
     RowBox[{"energies", "=", 
@@ -2013,17 +2049,8 @@ Cell[BoxData[{
        RowBox[{"i", "*", "enAU1GHz"}], ",", 
        RowBox[{"{", 
         RowBox[{"i", ",", 
-         RowBox[{"-", "300"}], ",", "300", ",", "1"}], "}"}]}], "]"}]}], 
+         RowBox[{"-", "200"}], ",", "200", ",", "50"}], "}"}]}], "]"}]}], 
     ";"}], " ", "*)"}]}], "\[IndentingNewLine]", 
- RowBox[{
-  RowBox[{"energies", "=", 
-   RowBox[{"Table", "[", 
-    RowBox[{
-     RowBox[{"i", "*", "enAU1GHz"}], ",", 
-     RowBox[{"{", 
-      RowBox[{"i", ",", 
-       RowBox[{"-", "200"}], ",", "200", ",", "50"}], "}"}]}], "]"}]}], 
-  ";"}], "\[IndentingNewLine]", 
  RowBox[{
   RowBox[{"Clear", "[", "f", "]"}], ";"}], "\[IndentingNewLine]", 
  RowBox[{
@@ -2334,11 +2361,26 @@ energy.\>\"", "<>", "\"\<\\n\>\""}], ",", "\[IndentingNewLine]",
    3.727194251944256*^9}, {3.72719517653714*^9, 3.727195180889388*^9}, {
    3.7271967257507496`*^9, 3.7271967558144693`*^9}, {3.7293673291588163`*^9, 
    3.729367347191848*^9}, {3.7293681238482695`*^9, 3.729368206361989*^9}, 
-   3.729368273384823*^9},
+   3.729368273384823*^9, {3.729371171275573*^9, 3.7293711927628016`*^9}},
  ExpressionUUID -> "6d26990d-8565-42cb-bdc9-ffa4068b4a70"],
 
-Cell[BoxData["\<\"test\"\>"], "Output",
- CellChangeTimes->{3.7293682231369486`*^9, 3.729368284486458*^9}]
+Cell[BoxData[
+ RowBox[{
+  StyleBox[
+   RowBox[{"NIntegrate", "::", "ncvb"}], "MessageName"], 
+  RowBox[{
+  ":", " "}], "\<\"NIntegrate failed to converge to prescribed accuracy after \
+\\!\\(\\*RowBox[{\\\"9\\\"}]\\) recursive bisections in \
+\\!\\(\\*RowBox[{\\\"z\\\"}]\\) near \\!\\(\\*RowBox[{\\\"{\\\", \\\"z\\\", \
+\\\"}\\\"}]\\) = \\!\\(\\*RowBox[{\\\"{\\\", \
+\\\"23089.0027734997254744246972558443208034528737471191561780869960785`65.\
+954589770191\\\", \\\"}\\\"}]\\). NIntegrate obtained \
+\\!\\(\\*RowBox[{\\\"3.896985305697995`*^6\\\", \\\"-\\\", \
+RowBox[{\\\"1.8508528657907053`\\\", \\\" \\\", \\\"\[ImaginaryI]\\\"}]}]\\) \
+and \\!\\(\\*RowBox[{\\\"4.14538901647056`\\\"}]\\) for the integral and \
+error estimates.\"\>"}]], "Message", "MSG",
+ ShowCellLabel->True,
+ CellChangeTimes->{3.7293722442659445`*^9}]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]],
@@ -2639,49 +2681,53 @@ Cell[39794, 1020, 667, 12, 23, "Print"]
 }, Closed]],
 Cell[CellGroupData[{
 Cell[40522, 1039, 462, 6, 41, "Subsection"],
-Cell[40987, 1047, 19853, 445, 2243, "Input"],
 Cell[CellGroupData[{
-Cell[60865, 1496, 139, 1, 52, "Input"],
-Cell[61007, 1499, 317, 7, 55, "Output"],
-Cell[61327, 1508, 456, 10, 55, "Output"]
+Cell[41009, 1049, 19920, 447, 2243, "Input"],
+Cell[60932, 1498, 86, 1, 31, "Output"],
+Cell[61021, 1501, 843, 16, 92, "Message"]
+}, Open  ]],
+Cell[CellGroupData[{
+Cell[61901, 1522, 139, 1, 52, "Input"],
+Cell[62043, 1525, 317, 7, 55, "Output"],
+Cell[62363, 1534, 456, 10, 55, "Output"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[61832, 1524, 508, 7, 49, "Subsection"],
+Cell[62868, 1550, 508, 7, 49, "Subsection"],
 Cell[CellGroupData[{
-Cell[62365, 1535, 5289, 135, 662, "Input"],
+Cell[63401, 1561, 5289, 135, 662, "Input"],
 Cell[CellGroupData[{
-Cell[67679, 1674, 1085, 18, 23, "Print"],
-Cell[68767, 1694, 1064, 17, 23, "Print"],
-Cell[69834, 1713, 1048, 16, 23, "Print"]
+Cell[68715, 1700, 1085, 18, 23, "Print"],
+Cell[69803, 1720, 1064, 17, 23, "Print"],
+Cell[70870, 1739, 1048, 16, 23, "Print"]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[70931, 1735, 396, 12, 40, "Input"],
-Cell[71330, 1749, 7482, 135, 245, "Output"]
+Cell[71967, 1761, 396, 12, 40, "Input"],
+Cell[72366, 1775, 7482, 135, 245, "Output"]
 }, Open  ]]
 }, Closed]],
 Cell[CellGroupData[{
-Cell[78861, 1890, 515, 7, 41, "Subsection"],
+Cell[79897, 1916, 515, 7, 41, "Subsection"],
 Cell[CellGroupData[{
-Cell[79401, 1901, 19509, 436, 2212, "Input"],
-Cell[98913, 2339, 105, 1, 88, "Output"]
+Cell[80437, 1927, 19575, 437, 2212, "Input"],
+Cell[100015, 2366, 825, 16, 92, "Message"]
 }, Open  ]]
 }, Open  ]]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[99079, 2347, 303, 4, 70, "Section"],
+Cell[100901, 2389, 303, 4, 70, "Section"],
 Cell[CellGroupData[{
-Cell[99407, 2355, 282, 8, 31, "Input"],
-Cell[99692, 2365, 695, 23, 58, "Output"]
+Cell[101229, 2397, 282, 8, 31, "Input"],
+Cell[101514, 2407, 695, 23, 58, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[100424, 2393, 236, 6, 31, "Input"],
-Cell[100663, 2401, 176, 5, 48, "Output"]
+Cell[102246, 2435, 236, 6, 31, "Input"],
+Cell[102485, 2443, 176, 5, 48, "Output"]
 }, Open  ]],
 Cell[CellGroupData[{
-Cell[100876, 2411, 609, 19, 40, "Input"],
-Cell[101488, 2432, 6463, 120, 240, "Output"]
+Cell[102698, 2453, 609, 19, 40, "Input"],
+Cell[103310, 2474, 6463, 120, 240, "Output"]
 }, Open  ]]
 }, Closed]]
 }
