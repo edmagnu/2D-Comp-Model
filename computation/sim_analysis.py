@@ -1246,5 +1246,21 @@ def ErrorMessages():
     fig.savefig('ErrorMessages.pdf')
     return data, mask
 
-# data, errcons = ErrorConditions()
-data, mask = ErrorMessages()
+
+def main():
+    au = atomic_units()
+    data = pd.read_csv('ErrorMessages.txt', index_col=0)
+    data= data[(data['Error'] == 'ndsz')]
+    # human readable lab values
+    data['E0'] = np.round(data['E0']/au['GHz'], 1)
+    data['Ep'] = np.round(data['Ep']/au['mVcm'], 2)
+    data['dL'] = np.round(data['dL'], 1)
+    data['th_LRL'] = np.round(data['th_LRL']/np.pi, 1)
+    data['phi'] = np.round(data['phi']*100/np.pi, 1)
+    data['Dlow'] = np.round(data['Dlow']/au['ns'], 2)
+    data['Dhigh'] = np.round(data['Dhigh']/au['ns'], 2)
+    data['enfinal'] = np.round(data['enfinal']/au['GHz'], 2)
+    return data
+
+
+data = main()
