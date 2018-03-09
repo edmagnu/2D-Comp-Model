@@ -1097,9 +1097,9 @@ def nanplot():
         mask = mask1 & maskep
         nan1[i] = sum(np.isnan(data[mask]["enfinal"]))
     plt.figure()
-    plt.plot(Eps/au["mVcm"], 100*nan0/400,
+    plt.plot(Eps/au["mVcm"], 100*nan0/400, 'o-',
              label=r"$W_0$ = {} GHz".format(np.round(E0s[0]/au["GHz"], 2)))
-    plt.plot(Eps/au["mVcm"], 100*nan1/400,
+    plt.plot(Eps/au["mVcm"], 100*nan1/400, 'o-',
              label=r"$W_0$ = {} GHz".format(np.round(E0s[1]/au["GHz"], 2)))
     plt.xlabel("Pulsed Field (mV/cm)")
     plt.ylabel("% of Bad Uphill Runs")
@@ -1139,25 +1139,46 @@ def assimilate_new_data():
     return
 
 
-def main():
+def ErrorConditions():
+    """Read data from data_fit.txt, compile all observations that have returned
+    NaN for final energy. These are obs that had an error during NIntegrate.
+    Coerce the E0, Ep, dL, th_LRL and phi into exact values used in testing.nb.
+    Save these values to ErrorConditions.txt.
+    Returns data, errcons DataFrames
+    """
     au = atomic_units()
+    # read data and get just the bad runs
     data = pd.read_csv("data_fit.txt")
     mask = np.isnan(data["enfinal"])
-    obs = data.loc[data[mask].index[1]]
-    # print(obs)
-    # print()
-    E0 = np.round(obs["E0"]/au["GHz"], 1)
-    Ep = np.round(obs["Ep"]/au["mVcm"], 2)
-    dL = np.round(obs["dL"], 1)
-    th_LRL = np.round(obs["th_LRL"]/np.pi, 1)
-    phi = np.round(obs["phi"]*100/np.pi, 1)
-    rstring = ("E0 = {0} GHz\nEp = {1} mV/cm\ndL = {2}\nth_LRL = {3} pi" +
-               "\nphi = ({4} / 100) pi")
-    print(rstring.format(E0, Ep, dL, th_LRL, phi))
-    return data
+    # i = np.random.randint(0, sum(mask), 1)[0]  # random example
+    # print(i)
+    # i = 1  # specific example
+    errcons = pd.DataFrame()
+    l = sum(mask)
+    for i, index in enumerate(data[mask].index):
+        print('\r {0} / {1}'.format(i, l), end='\r')
+        obs = data.loc[index]
+        # print(obs)
+        # print()
+        E0 = np.round(obs["E0"]/au["GHz"], 1)
+        Ep = np.round(obs["Ep"]/au["mVcm"], 2)
+        dL = np.round(obs["dL"], 1)
+        th_LRL = np.round(obs["th_LRL"]/np.pi, 1)
+        phi = np.round(obs["phi"]*100/np.pi, 1)
+        # rstring = ("i = {5}\nE0 = {0} GHz\nEp = {1} mV/cm\ndL = {2}" + 
+        #            "\nth_LRL = {3} pi\nphi = ({4} / 100) pi")
+        # print(rstring.format(E0, Ep, dL, th_LRL, phi, i))
+        # print()
+        obsrep = pd.DataFrame({'E0': E0, 'Ep': Ep, 'dL': dL, 'th_LRL': th_LRL,
+                               'phi': phi},
+                              index=[index])
+        errcons = errcons.append(obsrep)
+    print()
+    errcons.to_csv('ErrorConditions.txt')
+    return data, errcons
 
 
-data = main()
+data, errcons = main()
 
 # build_all_reports()
 # stitch_reports()
