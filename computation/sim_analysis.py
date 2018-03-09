@@ -1141,7 +1141,7 @@ def assimilate_new_data():
 
 def ErrorConditions():
     """Read data from data_fit.txt, compile all observations that have returned
-    NaN for final energy. These are obs that had an error during NIntegrate.
+    NaN for final energy. These are obs that had an error during NDSolve.
     Coerce the E0, Ep, dL, th_LRL and phi into exact values used in testing.nb.
     Save these values to ErrorConditions.txt.
     Returns data, errcons DataFrames
@@ -1178,11 +1178,73 @@ def ErrorConditions():
     return data, errcons
 
 
-data, errcons = main()
+def ErrorMessages():
+    """Read ErrorMessages.txt produced by testing.nb and look at what NDSolve
+    errors are generated for what initial conditions. Print the portion of
+    total errors each kind is responsible for. Make scatterplots showing the
+    errrors as Final Energy vs Field or Stopping Time (not tmax!). Figure saves
+    to ErrorMessages.pdf.
+    Returns data pd.DataFrame and mask pd.Series"""
+    au = atomic_units()
+    # load data
+    data = pd.read_csv('ErrorMessages.txt', index_col=0)
+    # convert to lab units
+    data['enfinal'] = data['enfinal']/au['GHz']
+    data['Ep'] = data['Ep']/au['mVcm']
+    data['Dlow'] = data['Dlow']/au['ns']
+    data['Dhigh'] = data['Dhigh']/au['ns']
+    # prep masks
+    mask = {}
+    # E0
+    E0s = np.sort(data['E0'].unique())
+    mask['E0m20'] = (data['E0'] == E0s[0])
+    mask['E0p0'] = (data['E0'] == E0s[1])
+    # Error
+    errs = np.sort(data['Error'].unique())
+    mask['NOERR'] = (data['Error'] == errs[0])
+    mask['mxst'] = (data['Error'] == errs[1])
+    mask['ndsz'] = (data['Error'] == errs[2])
+    # print fraction of total for each error
+    l = len(data)
+    pmxst = round(sum(mask['mxst'])/l, 3)
+    pndsz = round(sum(mask['ndsz'])/l, 3)
+    pnone = round(sum(mask['NOERR'])/l, 3)
+    print('Max Steps:\t{}'.format(pmxst))
+    print('Step Size:\t{}'.format(pndsz))
+    print('No Error:\t{}'.format(pnone))
+    # Look at final energies for each result as a function of E0, Ep
+    # set up subplots, cols = [Ep, tfinal] and rows = [mxst, ndsz, NOERR]
+    fig, ax = plt.subplots(ncols=2, nrows=3, sharex='col', sharey='row')
+    kwm20 = {'style': '.', 'alpha': 0.3, 'label': "-20 GHz", 'c': 'C0'}
+    kwp0 = {'style': '.', 'alpha': 0.3, 'label': "0 GHz", 'c': 'C1'}
+    # loop through each error message
+    for i, error in enumerate(['mxst', 'ndsz', 'NOERR']):
+        mtemp = (mask[error] & mask['E0m20'])
+        data[mtemp].plot(x='Ep', y='enfinal', **kwm20, ax=ax[i, 0])
+        data[mtemp].plot(x='Dhigh', y='enfinal', **kwm20, ax=ax[i, 1])
+        mtemp = (mask[error] & mask['E0p0'])
+        data[mtemp].plot(x='Ep', y='enfinal', **kwp0, ax=ax[i, 0])
+        data[mtemp].plot(x='Dhigh', y='enfinal', **kwp0, ax=ax[i, 1])
+        # ax[i, 0].set(ylim=(min(data['enfinal']), max(data['enfinal'])))
+    # make the plot pretty
+    ax[0, 0].set(ylabel=("Max Steps {}%".format(pmxst*100) + "\n" +
+                         r"$W_{final}$ (GHz)"))
+    ax[1, 0].set(ylabel=("Step Size {}%".format(pndsz*100) + "\n" +
+                         r"$W_{final}$ (GHz)"))
+    ax[2, 0].set(xlim=(0, max(data['Ep']*1.1)), xlabel="Field (mV/cm)",
+                 ylabel=("No Error {}%".format(pnone*100) + "\n" +
+                         r"$W_{final}$ (GHz)"))
+    ax[2, 1].set(xlim=(0, 70*1.1), xlabel="End Time (ns)")
+    for i in [0, 1, 2]:
+        ax[i, 0].grid(True)
+        ax[i, 1].grid(True)
+        ax[i, 0].legend().remove()
+        ax[i, 1].legend().remove()
+    fig.suptitle("NDSolve Errors")
+    fig.legend()
+    fig.tight_layout(rect=[0, 0, 1, 0.95])  # space for suptitle.
+    fig.savefig('ErrorMessages.pdf')
+    return data, mask
 
-# build_all_reports()
-# stitch_reports()
-# print(record)
-# phase_amp_plot()
-# nanplot()
-# assimilate_new_data()
+# data, errcons = ErrorConditions()
+data, mask = ErrorMessages()
