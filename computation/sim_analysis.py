@@ -1241,7 +1241,8 @@ def ErrorMessages():
         ax[i, 0].legend().remove()
         ax[i, 1].legend().remove()
     fig.suptitle("NDSolve Errors")
-    fig.legend()
+    handles, labels = ax[0, 1].get_legend_handles_labels()
+    fig.legend(handles, labels)
     fig.tight_layout(rect=[0, 0, 1, 0.95])  # space for suptitle.
     fig.savefig('ErrorMessages.pdf')
     return data, mask
@@ -1263,4 +1264,4 @@ def main():
     return data
 
 
-data = main()
+data, mask = ErrorMessages()

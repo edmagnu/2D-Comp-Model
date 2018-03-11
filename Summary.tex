@@ -73,8 +73,9 @@ where the $\Phi_P$ and $\Phi_{MW}$ are envelope functions describing the square 
 For computation, these vector equations need to be expressed in terms of Cartesian coordinates \{x,y,z\}. Including the initial conditions from Sec.~\ref{sec:IC}, the system of ODEs is:
 \begin{align*}
 x(0) & = \sin{\theta_{LRL}} \cdot r_0 & z(0) & = -\cos{\theta_{LRL}} \cdot r_0 \\
-\dot{x}(0) & = \pm \cos{\theta_{LRL}} \cdot v_0 & \dot{z}(0) & = \pm \sin{\theta_{LRL}} \cdot v_0 \quad \quad \hat{L} = \pm \hat{y} \\
-\ddot{x} & = -\frac{x}{(x^2 + z^2)^{3/2}} & \ddot{z} & = -\frac{z}{(x^2 + z^2)^{3/2}} - \Phi_P(t) \cdot E_P - \Phi_{MW}(t) \cdot E_{MW} \cdot \sin{(\omega t + \phi_0)}
+\dot{x}(0) & = \pm \cos{\theta_{LRL}} \cdot v_0 & \dot{z}(0) & = \pm \sin{\theta_{LRL}} \cdot v_0 \quad \text{for} \quad \hat{L} = \pm \hat{y} \\
+\ddot{x} & = -\frac{x}{(x^2 + z^2)^{3/2}} & \ddot{z} & = -\frac{z}{(x^2 + z^2)^{3/2}} - \Phi_P(t) \cdot E_P \\
+ & & & \quad \quad - \Phi_{MW}(t) \cdot E_{MW} \cdot \sin{(\omega t + \phi_0)}
 \end{align*}
 
 \section{\label{sec:Tests} Tests}
@@ -148,11 +149,28 @@ For $\Delta \phi = \pi/6$, this suggests a maximum "slingshot" exchange of
 
 \section{\label{sec:static} Uphill and Downhill Electrons in Static Fields}
 
+\emph{There's lots to say here, look at the 1D model and turning time calculations.}
+
 \subsection{\label{sec:DHstatic} Downhill Electrons in Static Fields}
 
 \begin{figure}
 \includegraphics[width=\textwidth]{DIL}
 \caption{\label{fig:DIL} The dynamics of "downhill" electrons are dominated by the depressed ionization limit in the pulsed field. \textbf{(a)} Total potential seen by an electron in a static field. "Downhill" electrons see a potential barrier of $V_{DIL} = -2\sqrt{E}$. \textbf{(b)} DIL as a function of applied Field.}
 \end{figure}
+
+\section{\label{sec:Err} Error Correction}
+
+There are plenty of details involved in turning the equations stated in Sec~\ref{sec:EoM} into a computation. I've elected to use Mathematica for simplicity, although I have some regrets. The equations of motion are passed off to \texttt{NDSolve[]} using \texttt{PrecisionGoal->13} and \texttt{AccuracyGoal->13} to ensure a MW and pulsed field-free orbit conserves energy up to $< 0.01$ GHz. The solver is asked to solve for $t_i = 0$ ns to $t_f = (20~\text{ns}) + 5\tau_{MW} = 70$ ns. This is done for all possible combinations of the following parameters:
+\begin{align*}
+W_0 & = \{0,~ -20\}~\text{GHz} \\
+E_p & = \{0,~ 7.2,~ 14.4,~ 21.6,~ 28.8,~ 36.0,~ 43.2,~ 57.6,~ 72.0,~ 86.4,~ 100.8,~ \\
+ & \quad \quad 115.2,~ 144.0,~ 172.8,~ 187.2,~ 201.6,~ 230.4,~ 259.2,~ 288.0\}~\text{mV/cm} \\
+\theta_{LRL} & = \{0,~ \pi\} \\
+\hat{L} & = \{-1,~ 1\}~\hat{y} \\
+\phi_0 & = \{0,~ \frac{1}{100} \pi,~ \frac{2}{100} \pi, \ldots, \frac{198}{100} \pi,~ \frac{199}{100} \pi\}
+\end{align*}
+For a particular $W_0,~ E_p$, this takes 4 hours on the lab computer running all 4 cores. Some back of the envelope estimation gives 114 hours, or 5 days, of runtime for the full data set.
+
+Approximately 92\% of these run successfully, in which case the final energy is saved. The other 8\% return some error in \texttt{NDSolve[]}. Looking at these errors, 8\% aren't errors when re-run (\emph{why?}) and 12.5\% reach the maximum number of steps set for \texttt{NDSolve[]}. The remaining 79.5\% return an error when the integrator step size is too small, due to the electron slamming straight into the $1/r$ singularity. For the ``No Error'' case I can just fill in the \texttt{NaN} final energy with the new result, and for the ``Max Steps'' case I can simply restart at the end state and continue until $t_{max}$ is finally reached. The ``Step Size is 0'' case is more complicated.
 
 \end{document}
