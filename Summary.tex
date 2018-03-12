@@ -173,4 +173,34 @@ For a particular $W_0,~ E_p$, this takes 4 hours on the lab computer running all
 
 Approximately 92\% of these run successfully, in which case the final energy is saved. The other 8\% return some error in \texttt{NDSolve[]}. Looking at these errors, 8\% aren't errors when re-run (\emph{why?}) and 12.5\% reach the maximum number of steps set for \texttt{NDSolve[]}. The remaining 79.5\% return an error when the integrator step size is too small, due to the electron slamming straight into the $1/r$ singularity. For the ``No Error'' case I can just fill in the \texttt{NaN} final energy with the new result, and for the ``Max Steps'' case I can simply restart at the end state and continue until $t_{max}$ is finally reached. The ``Step Size is 0'' case is more complicated.
 
+\subsection{\label{sec:ssing} Skipping the Singularity}
+
+One solution is to ``skip over'' the singularity. In our regime of electron energies and field strengths, we know the model is roughly separable into interactions with the core and the MW field where the pulsed field is negligible, and interactions with the core and pulsed field where the MW field effects average out over cycles. With this in mind, when the Coulomb singularity becomes a problem, it can be skipped over by making this separation explicit.
+
+The pseudo-recipe for skipping the singularity when \texttt{NDSolve[]} returns a step size error is as follows:
+\begin{enumerate}
+	\item Take final electron state information ($\vec{r}(t_{F}), \vec{v}(t_{F}, W(t_{F})$) from a time $t_F$ slightly before the error.
+	\item Use the time of the error $t_E$ as the slingshot time and get the slingshot phase $\phi_s$. From this, change the electron energy can be found from Sec.~\ref{sec:EvP}:  $\Delta W_{s} = \sqrt{3} ~ (3/2) ~ (E_{MW}/\omega^{2/3}) ~ \cos{\phi_s}$.
+	\item Re-launch the solver with new initial conditions assuming the approach to the core and the escape from the core are symmetric, except the energy and therefore velocity has changed. \begin{align*}
+	\vec{r}(t_i) & = \vec{r}(t_F) \\
+	W(t_i) & = W(t_F) + \Delta W_s(\phi_s) \\
+	\vec{v}(t_i) & = v(W(t_i), \vec{r}(t_i)) \cdot -\hat{v}(t_f)
+	\end{align*}
+\end{enumerate}
+
+The obvious hangup with this simple recipe is that, close to the core, The MW field produces very large energy oscillations. If the simulation is blindly switched from $t_F$ to $t_i$ without being aware of what phase of the energy oscillations each time represents, a large amount of unwanted energy transfer can occur. Fig.~\ref{fig:oscsling} shows a detailed look at the energy oscillations as an electron swings around the core, and suggests a solution to this problem.
+
+\begin{figure}
+\includegraphics[width=\textwidth]{computation/oscillations_slingshot}
+\caption{\label{fig:oscsling} A close up look at Energy vs Time for an electron ``slingshotting'' around the core. The red lines mark the slingshot time $t_s$, one MW cycle in either direction $t_s \pm 1/f_{MW}$, and the nearest extema of the MW field beyond one MW cycle, showing a point where the energy oscillations are at their time-averaged value. This particular run is executed with $E_{MW} = 4$ V/cm, $E_p = 0$ mV/cm, $W_0 = -28$ GHz, $dL = +1$, $\theta_{LRL} = 0$, and $\phi_0 = 4/6 ~ \pi$.}
+\end{figure}
+
+As should be expected, the energy oscillations are exactly $\pi/2$ out of phase with the MW field. This suggests stopping and starting the electron at extrma of the MW field will lead to zero net energy transfer. To make sure the large energy exchange near the core doesn't mess up results these extrema should be chosen at least 1 MW period away from $t_s$. Using this logic, we get stopping and starting times:
+\begin{align*}
+\phi_{off} & = \left( t_s \omega_{MW} + \phi_0 +\pi/2 \right) ~mod~ \pi \\
+t_F & = t_s - \frac{2\pi + \phi_{off}}{\omega_{MW}} \\
+t_i & = t_s + \frac{2\pi + \pi - \phi_{off}}{\omega_{MW}}
+\end{align*}
+There is $2\phi_{off} \omega_{MW}$ of ``lost time'', but this aught not be significant compared to the total integration time for all but the most pathological cases. 
+
 \end{document}
