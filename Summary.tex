@@ -201,6 +201,34 @@ As should be expected, the energy oscillations are exactly $\pi/2$ out of phase 
 t_F & = t_s - \frac{2\pi + \phi_{off}}{\omega_{MW}} \\
 t_i & = t_s + \frac{2\pi + \pi - \phi_{off}}{\omega_{MW}}
 \end{align*}
-There is $2\phi_{off} \omega_{MW}$ of ``lost time'', but this aught not be significant compared to the total integration time for all but the most pathological cases. 
+There is $2\phi_{off} \omega_{MW}$ of ``lost time'', but this aught not be significant compared to the total integration time for all but the most pathological cases.
+
+The recipe can now be made explicit:
+\begin{enumerate}
+	\item \texttt{NDSolve[]} returns a Step Size Error and the solution has a final time $t_s$.
+	
+	\item Define stop final and new initial times $t_F$, $t_i$. \begin{align*}
+	\phi_{off} & = (t_s \omega_{MW} + \phi_0 + \pi/2) ~ mod ~ \pi \\
+	t_F & = t_s - \frac{2\pi + \phi_{off}}{\omega_{MW}} \\
+	t_i & = t_s + \frac{2\pi + \pi - \phi_{off}}{\omega_{MW}}
+	\end{align*}
+	
+	\item The initial position is the final position. \begin{align*}
+	[x_i, z_i] & = [x(t_F), z(t_F)]
+	\end{align*}
+	
+	\item Add the slingshot energy to the final energy to get the new initial energy \begin{align*} \\
+	W_F & = -\frac{1}{\sqrt{x(t_F)^2 + z(t_F)^2}} + \frac{(v_x^2(t_F) + v_z^2(t_F))}{2}\\
+	W_i & = W_F + \Delta W_s(\omega_{MW} t_F + \phi_0)
+	\end{align*}
+	
+	\item The new velocity is opposite the old velocity, and determined by the new energy. \begin{align*}
+	\theta_{v,F} & = \arctan{\frac{v_z(t_F)}{v_x(t_F)}} \\
+	v_i & = \sqrt{2 \left( W_i + 1/\sqrt{x_i^2 + z_i^2} \right) } \\
+	[v_{i,x}, v_{i,z}] & = v_i \cdot \left[ \cos{(\theta_{v,F} + \pi)} ~ , ~ \sin{(\theta_{v,F} + \pi)} \right]
+	\end{align*}
+	
+	\item The solver is restarted at $t_s$ and run until another error or $t_{end}$.
+\end{enumerate}
 
 \end{document}
