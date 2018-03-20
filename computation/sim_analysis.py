@@ -1264,4 +1264,4 @@ def main():
     return data
 
 
-data, mask = ErrorMessages()
+data = main()
