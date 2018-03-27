@@ -177,11 +177,11 @@ def single_patch(data, i):
 
 
 def bound_patch():
-    """Reads raw data from read_tidy() output, and uses enfinal to add "bound"
-    to the DataFrame. To replace NaN, "bound_p" averages nearest neighbors in
-    "bound". Writes new data to "data_bound.txt"
+    """Reads raw data from error_hanlde() output, and uses enfinal to add
+    "bound" to the DataFrame. To replace NaN, "bound_p" averages nearest
+    neighbors in "bound". Writes new data to "data_bound.txt"
     Returns data DataFrame"""
-    data = pd.read_csv("data_raw.txt", index_col=0)
+    data = pd.read_csv("data_eh.txt", index_col=0)
     data.reset_index(drop=True, inplace=True)
     mask_nan = np.isnan(data["enfinal"])
     # print(data[mask_nan].index.unique())
@@ -1122,7 +1122,9 @@ def assimilate_new_data():
     """
     # data files from "results" -> data_raw.txt
     read_tidy()
-    # data_raw.txt -> data_bound.txt
+    # data_raw.txt -> data_eh.txt
+    error_handle()
+    # data_eh.txt -> data_bound.txt
     bound_patch()
     # data_bound.txt -> data_conv.txt"
     build_convolve()
@@ -1248,20 +1250,90 @@ def ErrorMessages():
     return data, mask
 
 
-def main():
+def error_handle():
+    # import
+    eh = pd.read_csv("HandleErrors.csv", index_col=0)
+    eh2 = pd.read_csv("HandleErrors2.csv", index_col=0)
+    eh = eh.append(eh2)
+    eh = eh.reindex(eh.index.astype(int))
+    eh.rename(index=int, columns={'wfinal': 'enfinal'}, inplace=True)
+    eh.sort_index(inplace=True)
+    eh.reset_index(drop=True, inplace=True)
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    # coerce values by key, only need 'Ep' and 'phi'
+    # 'E0', 'dL', and 'th_LRL' are fine, but do it anyway
+    keys = ['E0', 'Ep', 'dL', 'th_LRL', 'phi']
+    for key in keys:
+        # print("\n" + key)
+        # get unique values
+        dun = np.sort(data[key].unique())
+        eun = np.sort(eh[key].unique())
+        # cycle through unique values
+        for i in range(len(eun)):
+            # print(i, eun[i], dun[i], eun[i]==dun[i], eun[i] - dun[i])
+            if abs(eun[i] - dun[i]) < 10**-14:
+                eh.loc[(eh[key] == eun[i]), key] = dun[i]
+            else:
+                print(i, key + " value doesn't match!\n")
+    # For each unique 'E0', 'Ep', 'th_LRL', 'dL', 'phi' in 'HandleErrors.csv"
+    # replace the corresponding value in "data_raw.txt"
+    leh = len(eh.index)
+    funcname = "error_handle()"
+    print()
+    for i, index in enumerate(eh.index):
+        progress(funcname, i, leh)
+        mask = (data[keys] == eh.loc[index, keys])
+        mask = mask.all(axis='columns')
+        if sum(mask) == 1:
+            if list(np.isnan(data.loc[mask, 'enfinal']))[0]:
+                data.loc[mask, 'enfinal'] = eh.loc[index, 'enfinal']
+            else:
+                print(i, "Not NaN!")
+        else:
+            print(i, "Not Found!")
+    print()
+    data.to_csv('data_eh.txt')
+    return data, eh, keys
+
+
+def Error_Conditions_2():
+    # import
+    data = pd.read_csv('data_eh.txt', index_col=0)
+    eh = pd.read_csv('HandleErrors.csv', index_col=0)
+    eh = eh.reindex(eh.index.astype(int))
+    eh.rename(index=int, columns={'wfinal': 'enfinal'}, inplace=True)
+    eh.sort_index(inplace=True)
+    # look at missing value
+    mask = np.isnan(data['enfinal'])
+    dmask = data[mask]
+    # rewrite Error_Conditions()
     au = atomic_units()
-    data = pd.read_csv('ErrorMessages.txt', index_col=0)
-    data= data[(data['Error'] == 'ndsz')]
-    # human readable lab values
-    data['E0'] = np.round(data['E0']/au['GHz'], 1)
-    data['Ep'] = np.round(data['Ep']/au['mVcm'], 2)
-    data['dL'] = np.round(data['dL'], 1)
-    data['th_LRL'] = np.round(data['th_LRL']/np.pi, 1)
-    data['phi'] = np.round(data['phi']*100/np.pi, 1)
-    data['Dlow'] = np.round(data['Dlow']/au['ns'], 2)
-    data['Dhigh'] = np.round(data['Dhigh']/au['ns'], 2)
-    data['enfinal'] = np.round(data['enfinal']/au['GHz'], 2)
-    return data
+    # read data and get just the bad runs
+    data = dmask
+    mask = np.isnan(data["enfinal"])
+    errcons = pd.DataFrame()
+    l = sum(mask)
+    for i, index in enumerate(data[mask].index):
+        progress("Error_Conditions_2()", i, l)
+        obs = data.loc[index]
+        # print(obs)
+        # print()
+        E0 = np.round(obs["E0"]/au["GHz"], 1)
+        Ep = np.round(obs["Ep"]/au["mVcm"], 2)
+        dL = np.round(obs["dL"], 1)
+        th_LRL = np.round(obs["th_LRL"]/np.pi, 1)
+        phi = np.round(obs["phi"]*100/np.pi, 1)
+        # rstring = ("i = {5}\nE0 = {0} GHz\nEp = {1} mV/cm\ndL = {2}" + 
+        #            "\nth_LRL = {3} pi\nphi = ({4} / 100) pi")
+        # print(rstring.format(E0, Ep, dL, th_LRL, phi, i))
+        # print()
+        obsrep = pd.DataFrame({'E0': E0, 'Ep': Ep, 'dL': dL, 'th_LRL': th_LRL,
+                               'phi': phi},
+                              index=[index])
+        errcons = errcons.append(obsrep)
+    print()
+    errcons.to_csv('ErrorConditions2.txt')
+    return data, errcons
 
 
-data = main()
+phase_amp_plot()

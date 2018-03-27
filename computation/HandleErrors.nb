@@ -10,10 +10,10 @@
 NotebookFileLineBreakTest
 NotebookFileLineBreakTest
 NotebookDataPosition[       158,          7]
-NotebookDataLength[     66272,       1575]
-NotebookOptionsPosition[     65955,       1559]
-NotebookOutlinePosition[     66296,       1574]
-CellTagsIndexPosition[     66253,       1571]
+NotebookDataLength[     66354,       1577]
+NotebookOptionsPosition[     66037,       1561]
+NotebookOutlinePosition[     66378,       1576]
+CellTagsIndexPosition[     66335,       1573]
 WindowFrame->Normal*)
 
 (* Beginning of Notebook Content *)
@@ -1330,7 +1330,7 @@ Cell[BoxData[
         RowBox[{"{", 
          RowBox[{
           RowBox[{"NotebookDirectory", "[", "]"}], ",", 
-          "\"\<ErrorConditions.txt\>\""}], "}"}], "]"}], ",", 
+          "\"\<ErrorConditions2.txt\>\""}], "}"}], "]"}], ",", 
        "\"\<Data\>\""}], "]"}]}], ";"}], "\[IndentingNewLine]", 
    RowBox[{
     RowBox[{"headers", "=", 
@@ -1522,7 +1522,7 @@ Cell[BoxData[
       RowBox[{"{", 
        RowBox[{
         RowBox[{"NotebookDirectory", "[", "]"}], ",", 
-        "\"\<HandleErrors.csv\>\""}], "}"}], "]"}]}], ";"}], 
+        "\"\<HandleErrors2.csv\>\""}], "}"}], "]"}]}], ";"}], 
    "\[IndentingNewLine]", 
    RowBox[{"Export", "[", 
     RowBox[{"fname", ",", "output", ",", "\"\<CSV\>\""}], "]"}]}]}]], "Input",
@@ -1549,12 +1549,14 @@ Cell[BoxData[
    3.730842049663265*^9, 3.7308421322069864`*^9}, {3.730842167671015*^9, 
    3.730842282263569*^9}, {3.730843044240152*^9, 3.730843077009026*^9}, {
    3.7308431452979317`*^9, 3.730843160144781*^9}, {3.730843192349623*^9, 
-   3.7308432049803457`*^9}, {3.7308436061222897`*^9, 3.730843630582689*^9}},
+   3.7308432049803457`*^9}, {3.7308436061222897`*^9, 3.730843630582689*^9}, {
+   3.730941918396125*^9, 3.7309419256915417`*^9}},
  ExpressionUUID -> "45cf71ea-137c-461a-bcb0-e1b921f652ff"],
 
 Cell[BoxData["\<\"C:\\\\Users\\\\labuser\\\\Documents\\\\2D-Comp-Model\\\\\
-computation\\\\HandleErrors.csv\"\>"], "Output",
- CellChangeTimes->{3.730843390169938*^9, 3.7308621209272757`*^9}]
+computation\\\\HandleErrors2.csv\"\>"], "Output",
+ CellChangeTimes->{3.730843390169938*^9, 3.7308621209272757`*^9, 
+  3.7309421165134563`*^9}]
 }, Open  ]]
 },
 WindowSize->{944, 992},
@@ -1574,8 +1576,8 @@ CellTagsIndex->{}
 (*NotebookFileOutline
 Notebook[{
 Cell[CellGroupData[{
-Cell[580, 22, 65166, 1530, 7476, "Input"],
-Cell[65749, 1554, 190, 2, 31, "Output"]
+Cell[580, 22, 65220, 1531, 7476, "Input"],
+Cell[65803, 1555, 218, 3, 31, "Output"]
 }, Open  ]]
 }
 ]
