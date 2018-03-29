@@ -16,6 +16,19 @@ def atomic_units():
     return au
 
 
+def progress(source, i, total):
+    """print an updating report of 'source: i/total'"""
+    # start on fresh line
+    if i == 0:
+        print()
+    # progress
+    print("\r{0}: {1} / {2}".format(source, i+1, total), end="\r")
+    # newline if we've reached the end.
+    if i+1 == total:
+        print()
+    return
+
+
 def read_metadata(fname):
     """Read file metadata and return a dictionary"""
     meta = {}  # initialize metadata dict
@@ -66,11 +79,11 @@ def read_tidy_binding():
     Returns pd.DataFrame
     """
     # specify file
-    directory = ("binding")
+    directory = ("binding_0")
     flist = os.listdir(directory)
     data_m = pd.DataFrame()  # initialize DataFrame
     for i, file in enumerate(flist):
-        print("{0} / {1} \t".format(i+1, len(flist)), end="\r")
+        progress("read_tidy_binding()", i, len(flist))
         # print(i, end="\r")
         fname = directory + "\\" + file  # build file
         # print(fname)
@@ -365,6 +378,55 @@ def field_picker(data, picks=[["tt", 20]]):
     return picked
 
 
+def energy_picker(data, picks=[['tt', 20]]):
+    au = atomic_units()
+    # data = pd.read_csv("data_raw.txt", index_col=0)  # read data
+    picked = pd.DataFrame()  # hold selected observations
+    keys = ["Dir", "field"]  # keys to consider
+    vals = unique_values(data, keys)  # get unique values for keys
+    mask = pd.Series([True]*len(data))
+    # mask out Dir
+    key = keys[0]
+    mask_t = (data[key] == vals[key][0])
+    mask = mask & mask_t
+    key = "field"
+    for i, field in enumerate(vals[key]):
+        # mask out W
+        progress("energy_picker()", i, len(vals[key]))
+        mask_t = (data[key] == field)
+        mask_f = mask & mask_t
+        # find index where data["t"] is closest to t
+        for pick in picks:
+            kind = pick[0]
+            t = pick[1]
+            # kind = list(picks.keys())[0]
+            mask_t = np.logical_not(np.isnan(data[kind]))
+            mask_k = mask_f & mask_t
+            # print("mask length ", sum(mask_k))
+            if np.sum(mask_k) != 0:
+                i = np.argmin(np.abs(data[mask_k][kind] - t*au["ns"]))
+                # print("index = ", i)
+                obs = data[mask_k].loc[i]
+                # interpolate to find E(W=Wi, t)
+                data_int = pd.DataFrame()
+                data_int[[kind, "W"]] = data[mask_k][[kind, "W"]]
+                data_int.sort_values(by=kind, inplace=True)
+                x = t*au["ns"]
+                y = np.interp(x, xp=data_int[kind], fp=data_int["W"],
+                              left=np.NaN, right=np.NaN)
+                # "correct" observation data
+                obs["W"] = y
+                obs["t"] = x
+                obs["kind"] = kind + "=" + str(t)
+                obs = obs[["Filename", "Dir", "zi", "kind", "W", "field"]]
+                picked = picked.append(obs)
+    print()
+    picked.reset_index(drop=True, inplace=True)
+    picked = picked[["Filename", "Dir", "zi", "kind", "W", "field"]]
+    # picked.to_csv("picked_f.txt")
+    return picked
+
+
 def build_test_data():
     # build data
     directory = ("test")
@@ -599,6 +661,22 @@ def build_picks():
     return data, picked
 
 
+def build_wpicks():
+    data = pd.read_csv("data_raw.txt", index_col=0)
+    data["tplus"] = (2*data["tt"] - data["tb"]).where(data["Dir"] == -1.0)
+    # uphill picks
+    picks = [["tt", 20], ["tt", 10], ["tb", 20], ["tplus", 20]]
+    mask = (data["Dir"] == -1)
+    picked_up = energy_picker(data[mask], picks)
+    # downhill picks
+    picks = [["tt", 20], ["tt", 10], ["tb", 20]]
+    mask = (data["Dir"] == 1)
+    picked_down = energy_picker(data[mask], picks)
+    picked = picked_up.append(picked_down)
+    picked.to_csv("picked_w.txt")
+    return data, picked
+
+
 def downhill_figure(ax):
     au = atomic_units()
     # data
@@ -686,7 +764,7 @@ def main():
 
 
 # build_data_raw()
-# build_picks()
+# build_wpicks()
 # uphill_figure()
 # downhill_figure()
 main()
