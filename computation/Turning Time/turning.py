@@ -16,6 +16,19 @@ def atomic_units():
     return au
 
 
+def progress(source, i, total):
+    """print an updating report of 'source: i/total'"""
+    # start on fresh line
+    if i == 0:
+        print()
+    # progress
+    print("\r{0}: {1} / {2}".format(source, i+1, total), end="\r")
+    # newline if we've reached the end.
+    if i+1 == total:
+        print()
+    return
+
+
 def read_metadata(fname):
     """Read file metadata and return a dictionary"""
     meta = {}  # initialize metadata dict
@@ -66,11 +79,11 @@ def read_tidy_binding():
     Returns pd.DataFrame
     """
     # specify file
-    directory = ("binding")
+    directory = ("binding_0")
     flist = os.listdir(directory)
     data_m = pd.DataFrame()  # initialize DataFrame
     for i, file in enumerate(flist):
-        print("{0} / {1} \t".format(i+1, len(flist)), end="\r")
+        progress("read_tidy_binding()", i, len(flist))
         # print(i, end="\r")
         fname = directory + "\\" + file  # build file
         # print(fname)
@@ -85,7 +98,8 @@ def read_tidy_binding():
         # organize data
         data = data[["Filename", "Dir", "zi", "W", "field", "zb", "tb",
                      "argtb", "zt", "tt", "argtt"]]
-        data_m = data_m.append(data)  # append to master DataFrame
+        # append to master DataFrame
+        data_m = data_m.append(data, ignore_index=True)
     data_m.sort_values(by=["field", "W"], inplace=True)
     data_m.reset_index(drop=True, inplace=True)
     # data_m.to_csv("data_raw.txt")
@@ -328,9 +342,9 @@ def field_picker(data, picks=[["tt", 20]]):
     mask_t = (data[key] == vals[key][0])
     mask = mask & mask_t
     key = "W"
-    for W in vals[key]:
+    for i, W in enumerate(vals[key]):
         # mask out W
-        print("\r W = ", np.round(W/au["GHz"], 2), "\t", end="\r")
+        progress("field_picker()", i, len(vals[key]))
         mask_t = (data[key] == W)
         mask_w = mask & mask_t
         # find index where data["t"] is closest to t
@@ -677,7 +691,7 @@ def downhill_figure(ax):
 
 
 def main():
-    fig, ax = plt.subplots(ncols=2, figsize=(6,3))
+    fig, ax = plt.subplots(ncols=2, figsize=(6, 3))
     ax[1] = downhill_figure(ax[1])
     ax[0] = uphill_figure(ax[0])
     plt.tight_layout()
@@ -685,8 +699,8 @@ def main():
     return
 
 
-# build_data_raw()
-# build_picks()
+build_data_raw()
+build_picks()
 # uphill_figure()
 # downhill_figure()
 main()
