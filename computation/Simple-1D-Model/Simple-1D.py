@@ -11,7 +11,8 @@ Created on Mon Mar  5 17:01:42 2018
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.integrate import quad
+import time
+from scipy.integrate import quad, odeint
 # import os
 import random
 
@@ -58,63 +59,118 @@ def tt_up(W, f):
     return tt
 
 
-def stat_rep(n, t, W):
+def stat_rep(n, ti, Wi, tf, Wf):
     au = atomic_units()
-    print("n = {0}\tt = {1} ns\tW = {2} GHz".format(
-            n, t/au['ns'], W/au['GHz']))
-    return
+    rs = "n = {0}\t"
+    rs = rs + "ti = {1} ns\t"
+    rs = rs + "Wi = {2} GHz\t"
+    rs = rs + "tf = {3} ns\t"
+    rs = rs + "Wf = {4}  GHz"
+    rs = rs.format(n, *np.round([ti/au['ns'], Wi/au['GHz'], tf/au['ns'],
+                                 Wf/au['GHz']], 4))
+    print(rs)
+    return rs
 
 
-def main():
-    au = atomic_units()
-    # fname = os.path.join("..", "Turning Time", "data_raw.txt")
-    # data = pd.read_csv(fname, index_col=0)
-    # dataframe
-    # initial conditions
-    n = 0  # counter
-    Wi = -3*au['GHz']  # starting energy
-    print(n, Wi/au['GHz'])
-    Ep = 2*au['mVcm']  # pulsed field
-    Emw = 4*1e3*au['mVcm']  # MW field
-    fmw = 2*np.pi*15.932/au['ns']  # MW frequency
-    phi = 4*np.pi/6  # launch MW phase
-    ti = 0  # launch time
-    tf = 20*au['ns']  # stop time
-    stat_rep(n, ti, Wi)
-    obs = {'n': n, 't': ti, 'W': Wi}
-    orbits = pd.DataFrame(obs, index=[n])
-    # execution
-    # initial energy exchange
-    n = n + 1
-    W = Wi + dWi(phi, Emw, fmw)
-    # orbit
-    tt = tt_up(W, Ep)[0]
-    t = ti + tt
-    stat_rep(n, t, W)
-    obs = {'n': n, 't': t, 'W': W}
-    orbits = orbits.append(obs, ignore_index=True)
-    while t <= tf:
+def dW_orbit(W0, Ep, Emw, fmw, t0, tstop):
+    orbits = pd.DataFrame()  # hold orbit info
+    # set up start
+    n = 0
+    tf = t0
+    Wf = W0
+    while tf <= tstop:
+        # new conditions
         n = n + 1
+        ti = tf
+        Wi = Wf
         phi = random.random()*2*np.pi  # random phase
-        W = W + dWs(phi, Emw, fmw)  # new energy
+        Wf = Wi + dWs(phi, Emw, fmw)  # new energy
         # orbit
-        tt = tt_up(W, Ep)[0]
-        t = t + tt
-        stat_rep(n, t, W)
-        obs = {'n': n, 't': t, 'W': W}
+        tt = tt_up(Wf, Ep)[0]
+        tf = ti + tt
+        # stat_rep(n, ti, Wi, tf, Wf)
+        obs = {'n': n, 'ti': ti, 'Wi': Wi, 'tf': tf, 'Wf': Wf}
         orbits = orbits.append(obs, ignore_index=True)
-    # tt = tt_up(-10*au['GHz'], 0*au['mVcm'])
     return orbits
 
 
-au = atomic_units()
-orbits = main()
-orbits['W'] = orbits['W']/au['GHz']
-orbits['t'] = orbits['t']/au['ns']
-# au = atomic_units()
-# phi = np.linspace(0, 2*np.pi, 1001)
-# Emw = 4000*au['mVcm']
-# wmw = 2*np.pi*15.932/au['ns']
-# omega_mw = 2*np.pi*fmw
-# print(np.sqrt(3)*3/2*Emw/(wmw**(2/3))/au['GHz'])
-# print((1/au['GHz']) * (3./2.) * Emw/(np.power(wmw, 2/3)))
+def derivative(y, t, Ep):
+    [r, v] = y
+    dydt = [v, 1/r**2 + Ep]
+    return dydt
+
+
+def path_integration(r0, v0, t, Ep):
+    y0 = [r0, v0]
+    # print(y0)
+    y = odeint(derivative, y0, t, args=(Ep,))
+    return y
+
+
+def int_path(W0, Ep, ti, tstop):
+    # au = atomic_units()
+    r0 = -6
+    if W0 + 1/abs(r0) >= 0:
+        v0 = -np.sqrt(2*(W0 + 1/abs(r0)))
+    else:
+        v0 = 0
+        r0 = -abs(1/W0)
+    t = np.linspace(ti, tstop, 10)
+    y = path_integration(r0, v0, t, Ep)
+    return t, y
+
+
+def y_to_w(y):
+    W = -1/np.abs(y[:, 0]) + np.power(y[:, 1], 2)/2
+    return W
+
+
+def orbits_plottable(orbits, fmw):
+    au = atomic_units()
+    Wpath = pd.DataFrame({'t': orbits['ti'], 'W': orbits['Wi']})
+    Wpath = Wpath.append(pd.DataFrame(
+            {'t': orbits['ti'] + 0.5/(fmw*au['ns']), 'W': orbits['Wf']}))
+    Wpath = Wpath.append({'t': orbits.iloc[-1]['tf'],
+                          'W': orbits.iloc[-1]['Wf']},
+                         ignore_index=True)
+    Wpath.sort_values(by='t', inplace=True)
+    return Wpath
+
+
+def main():
+    clock_start = time.time()
+    au = atomic_units()
+    W0 = 1*au['GHz']
+    Ep = 10*au['mVcm']
+    Emw = 4*1000*au['mVcm']
+    fmw = 2*np.pi*15.932/au['ns']
+    t0 = 0*au['ns']
+    tstop = 20*au['ns']
+    # MW exchange and orbit
+    orbits = dW_orbit(W0, Ep, Emw, fmw, t0, tstop)
+    orbits.sort_values(by='ti', inplace=True)
+    # integrate to t = 20 ns
+    t = orbits.iloc[-1]['ti']
+    W = orbits.iloc[-1]['Wf']
+    # print(t/au['ns'], W/au['GHz'])
+    t, y = int_path(W, Ep, t, tstop)
+    # plot
+    orbits[['ti', 'tf']] = orbits[['ti', 'tf']]/au['ns']
+    orbits[['Wi', 'Wf']] = orbits[['Wi', 'Wf']]/au['GHz']
+    # fig, ax = plt.subplots()
+    # Wpath = orbits_plottable(orbits, fmw)
+    # Wpath = Wpath[:-1]
+    Worbit = y_to_w(y)
+    clock_end = time.time()
+    print("Number of orbits = {}".format(len(orbits)))
+    print("Final Energy W = {} GHz".format(np.round(Worbit[-1]/au['GHz'], 2)))
+    print("Runtime = {} ms".format(np.round(clock_end - clock_start, 2)))
+    # Wpath = Wpath.append({'t': t[-1]/au['ns'], 'W': Worbit[-1]/au['GHz']},
+    #                      ignore_index=True)
+    # Wpath.plot(x='t', y='W', color='C0', marker='o', ax=ax)
+    # ax.plot(t/au['ns'], Worbit/au['GHz'], marker='.', color='C1')
+    # ax.set(xlabel='time (ns)', ylabel='Energy (GHz)')
+    return
+
+
+main()
