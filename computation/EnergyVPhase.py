@@ -176,12 +176,12 @@ def Potential_Plot(ax):
     acent = 0
     awidth = 0.1*zmax
     ax.arrow(x=acent+awidth/2, y=15, dx=-awidth, dy=0, width=1,
-                length_includes_head=True, head_width=5,
-                head_length=0.2*awidth, fc="k", ec="k")
+             length_includes_head=True, head_width=5,
+             head_length=0.2*awidth, fc="k", ec="k")
     props = props = dict(boxstyle='round', color="white", alpha=1.0)
     ax.text(0.8, 0.7, r"$\vec{E}$", transform=ax.transAxes, fontsize=14,
-               verticalalignment="top", horizontalalignment="right",
-               bbox=props)
+            verticalalignment="top", horizontalalignment="right",
+            bbox=props)
     # add indicator lines
     ax.axhline(0, linestyle="dashed", color="gray")
     ax.axhline(lim, linestyle="dashed", color="gray")
