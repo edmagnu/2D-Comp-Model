@@ -87,7 +87,7 @@ def dW_orbit(W0, Ep, Emw, fmw, t0, tstop):
         Wf = Wi + dWs(phi, Emw, fmw)  # new energy
         # orbit
         tt = tt_up(Wf, Ep)[0]
-        tf = ti + tt
+        tf = ti + 2*tt
         # stat_rep(n, ti, Wi, tf, Wf)
         obs = {'n': n, 'ti': ti, 'Wi': Wi, 'tf': tf, 'Wf': Wf}
         orbits = orbits.append(obs, ignore_index=True)
