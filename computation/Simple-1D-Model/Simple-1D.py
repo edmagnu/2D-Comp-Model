@@ -13,6 +13,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import time
 from scipy.integrate import quad, odeint
+import itertools
 # import os
 # import random
 
@@ -85,27 +86,33 @@ def stat_rep(n, ti, Wi, tf, Wf):
     return rs
 
 
-def dW_orbit(W0, Ep, Emw, fmw, t0, tstop):
+def dW_orbit(W0, Ep, Emw, fmw, t0, tstop, Wlim):
     # orbits = pd.DataFrame()  # hold orbit info
     # set up start
     n = 0
     tf = t0
     Wf = W0
-    while tf <= tstop:
+    clock = []
+    while tf <= tstop and Wf > Wlim:
         # new conditions
+        clock0 = time.time()
         n = n + 1
         ti = tf
         Wi = Wf
         phi = np.random.random()*2*np.pi  # random phase
         Wf = Wi + dWs(phi, Emw, fmw)  # new energy
+        clock1 = time.time()
         # orbit
         tt = tt_up(Wf, Ep)[0]
         tf = ti + 2*tt
         # stat_rep(n, ti, Wi, tf, Wf)
         # obs = {'n': n, 'ti': ti, 'Wi': Wi, 'tf': tf, 'Wf': Wf}
         # orbits = orbits.append(obs, ignore_index=True)
+        clock2 = time.time()
+        clock = clock + [[clock0, clock1, clock2]]
+    clock = list(np.array(clock).sum(axis=0))
     obs = {'n': n, 'ti': ti, 'Wi': Wi, 'tf': tf, 'Wf': Wf}
-    return obs
+    return obs, clock
 
 
 def derivative(y, t, Ep):
@@ -151,56 +158,63 @@ def orbits_plottable(orbits, fmw):
     return Wpath
 
 
-def run_to_20ns(W0, Ep, Emw, fmw, t0, tstop):
+def run_to_20ns(W0, Ep, Emw, fmw, t0, tstop, Wlim):
     # MW exchange and orbit
-    clock0 = time.time()
-    orbits = dW_orbit(W0, Ep, Emw, fmw, t0, tstop)
-    clock1 = time.time()
+    orbits, clock = dW_orbit(W0, Ep, Emw, fmw, t0, tstop, Wlim)
     # orbits.sort_values(by='ti', inplace=True)
     # integrate to t = 20 ns
     # t = orbits.iloc[-1]['ti']
     # W = orbits.iloc[-1]['Wf']
     t = orbits['ti']
     W = orbits['Wf']
-    t, y = int_path(W, Ep, t, tstop)
-    clock2 = time.time()
-    Wfinal = y_to_w(np.array([y[-1]]))  # small time savings
-    clock3 = time.time()
-    return Wfinal, [clock0, clock1, clock2, clock3]
+    if W > Wlim:
+        t, y = int_path(W, Ep, t, tstop)
+        Wfinal = y_to_w(np.array([y[-1]]))  # small time savings
+    else:
+        Wfinal = W
+    return Wfinal, clock
 
 
-def time_run_to_20ns():
+def time_run_to_20ns(n):
     au = atomic_units()
     trun = []
-    n = 10
+    # n = 10
     W0s = (np.random.random(n)*2 - 1)*42*au['GHz']
     Eps = np.random.random(n)*300*au['mVcm']
     Emw = 4*1000*au['mVcm']
     fmw = 2*np.pi*15.932/au['ns']
     t0 = 0*au['ns']
     tstop = 20*au['ns']
-    timings = [[]]
+    Wlim = -600*au['GHz']
+    timings = []
     for i in range(n):
         progress("time_run_to_20ns()", i, n)
         clock_start = time.time()
-        Wfinal, timing = run_to_20ns(W0s[i], Eps[i], Emw, fmw, t0, tstop)
+        Wfinal, timing = run_to_20ns(W0s[i], Eps[i], Emw, fmw, t0, tstop,
+                                     Wlim)
         clock_end = time.time()
         trun = trun + [clock_end - clock_start]
-        timing = np.diff(timing)
         timings = timings + [timing]
+    timings = np.diff(timings)
     bins = np.linspace(0, max(trun)*1.2, 1001)
     print('mean = {} s'.format(np.mean(trun)))
     print('median = {} s'.format(np.median(trun)))
-    plt.hist(trun, bins)
-    plt.xlabel("time (s)")
-    plt.ylabel("count")
-    plt.title("{0} runs of 'run_to_20ns()'".format(n))
-    return
+    fig, ax = plt.subplots(nrows=3, sharex=True)
+    ax[0].hist(trun, bins)
+    ax[0].set_title("{0} runs of 'run_to_20ns()'".format(n))
+    ax[1].hist(timings[:, 0], bins)
+    ax[1].set_title("dWs()")
+    ax[2].hist(timings[:, 1], bins)
+    ax[2].set_title("tt_up()")
+    ax[2].set_xlabel("time (s)")
+    ax[2].set_ylabel("counts")
+    fig.tight_layout()
+    return trun, timings
 
 
-def time_tt_up():
+def time_tt_up(n):
     au = atomic_units()
-    n = 1000
+    # n = 1000
     Ws = (np.random.random(n)*2 - 1)*42*au['GHz']
     Eps = np.random.random(n)*300*au['mVcm']
     trun = []
@@ -222,14 +236,49 @@ def time_tt_up():
     return trun
 
 
-def main():
+def trial_lookup(n):
     au = atomic_units()
-    W = 1000*au['GHz']
-    f = 300*au['mVcm']
-    tt = tt_up(W, f)[0]/au['ns']
-    print(tt)
-    return
+    Eps = np.arange(0, 3000+1, 1)
+    Ws = np.arange(-6000, 1000+1, 1)
+    # Epdicts = dict()
+    dictWs = dict()
+    for W in Ws:
+        tts = list(np.random.random(len(Eps)))
+        dictEps = dict(zip(Eps, tts))
+        dictWs[W] = dictEps
+    Ws = (np.random.random(n)*700 - 100)*au['GHz']  # -600 to 100
+    Eps = np.random.random(n)*300*au['mVcm']
+    clock0 = time.time()
+    for i in range(n):
+        # W = int(Ws[i]*10)
+        # Ep = int(Eps[i]*10)
+        dictWs[int(Ws[i]*10)][int(Eps[i]*10)]
+    clock1 = time.time()
+    print("{} s per run".format(clock1 - clock0))
+    return clock1 - clock0
 
-trun, timings = time_run_to_20ns()
-# trun = time_tt_up()
+
+def build_tt_lookup():
+    au = atomic_units()
+    Eps = range(0, 3000, 1)
+    Ws = np.arange(-6000, 1000, 1)
+    results = []
+    clock0 = time.time()
+    for i, (W, Ep) in enumerate(itertools.product(Ws, Eps)):
+        progress('build_tt_lookup', i, len(Eps)*len(Ws))
+        W = W/10*au['GHz']
+        Ep = Ep/10*au['mVcm']
+        results = results + [[W, Ep, tt_up(W, Ep)[0]]]
+    clock1 = time.time()
+    df = pd.DataFrame(results, columns=['W', 'Ep', 'tt'])
+    df.to_csv('uphill.csv')
+    print((clock1 - clock0)/(len(Eps)*len(Ws)))
+    return
+    
+
+# trun, timings = time_run_to_20ns(1000)
+# trun = time_tt_up(100)
+# clock = trial_lookup(100)
 # main()
+# dictWs = trial_lookup()
+build_tt_lookup()
