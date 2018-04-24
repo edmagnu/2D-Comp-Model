@@ -159,5 +159,6 @@ def NonZero_W():
     plt.savefig("NonZeroW.pdf")
     return
 
+
 ResRetComp()
 NonZero_W()

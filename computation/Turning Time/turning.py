@@ -764,13 +764,8 @@ def main():
     return
 
 
-<<<<<<< HEAD
-build_data_raw()
-build_picks()
-=======
 # build_data_raw()
 # build_wpicks()
->>>>>>> 680fee4571a93a3c76ffcb48bd0679ae3a501e3a
 # uphill_figure()
 # downhill_figure()
 main()

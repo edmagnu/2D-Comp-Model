@@ -5,4 +5,5 @@
 *.png
 *.ppt*
 *.orig
+*.h5
 /computation/Turning Time/turning/
