@@ -7,7 +7,6 @@ Created on Mon Apr 23 11:19:00 2018
 
 import turning_and_binding as tab
 import Simple_1D as s1d
-import math
 import random
 import numpy as np
 import pandas as pd
@@ -22,7 +21,7 @@ def bulk_f(W0s, Ep, Emw, w_mw, t0, toff, tring, tstop, Wlim, dup):
     lut_up, lut_down = tab.import_lookup_table()
     lut_up_f, lut_down_f = tab.import_lookup_table_f(Ep)
     # final energies DataFrame
-    n = 200
+    n = 2000  # uncertainty of ~ 1%
     m = n*len(W0s)
     Wfs = np.ones(m)*np.NaN
     df = pd.DataFrame()
@@ -55,7 +54,7 @@ def bulk_f(W0s, Ep, Emw, w_mw, t0, toff, tring, tstop, Wlim, dup):
     else:
         fname = fname + "d"
     fname = fname + ".h5"
-    fname = os.path.join("wfinals", "test", fname)
+    fname = os.path.join("wfinals", fname)
     print(fname)
     df.to_hdf(fname, 'df')
     return df
@@ -64,16 +63,16 @@ def bulk_f(W0s, Ep, Emw, w_mw, t0, toff, tring, tstop, Wlim, dup):
 def main():
     au = tab.atomic_units()
     # Bulk settings
-    W0s = np.arange(-100, 50+1, 1)*au['GHz']
+    W0s = np.arange(-100, 50 + 1, 1)*au['GHz']  # required for runtime
     Eps = np.array([0, 10, 40, 100])*au['mVcm']
     Emw = 4*1000*au['mVcm']
     w_mw = 2*np.pi*15.932/au['ns']
     t0 = 0*au['ns']
     # toff = 40*au['ns']
-    toff = np.NaN
-    tring = 180*au['ns']
+    toff = np.NaN  # set randomly inside bulk_f()
+    tring = 180*au['ns']  # from "Data\MW Resonance\mw_analysis.py"
     tstop = toff + 5*tring
-    Wlim = -600*au['GHz']
+    Wlim = -600*au['GHz']  # one orbit ~ mw cycle
     dup = True
     c1 = time.clock()
     workers = []

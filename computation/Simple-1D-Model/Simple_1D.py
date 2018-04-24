@@ -784,9 +784,9 @@ def time_run_to_stop(n):
     Emw = 4*1000*au['mVcm']
     fmw = 2*math.pi*15.932/au['ns']
     t0 = 0*au['ns']
-    toff = 40*au['ns']
+    toffs = (20 + np.random.random(n)*20)*au['ns']  # 20 to 40 ns
     tring = 180*au['ns']
-    tstop = toff + 5*tring
+    tstops = toffs + 5*tring
     Wlim = -600*au['GHz']
     dups = np.random.choice([True, False], size=n)  # np.bool_ !!!!!
     # field lookup tables
@@ -797,7 +797,7 @@ def time_run_to_stop(n):
         progress("time_run_to_stop()", i, n)
         clock_start = time.clock()
         run_to_stop(
-                W0s[i], Eps[i], Emw, fmw, t0, toff, tstop, Wlim, tring,
+                W0s[i], Eps[i], Emw, fmw, t0, toffs[i], tstops[i], Wlim, tring,
                 bool(dups[i]), lut_up, lut_down, lut_up_f, lut_down_f,
                 tr=False)  # np.bool_ !!!!!
         clock_end = time.clock()

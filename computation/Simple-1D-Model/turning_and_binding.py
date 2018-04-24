@@ -737,6 +737,7 @@ def plot_conds():
 
 
 def main():
+    lookup_table()
     build_lut_f()
     return
 
