@@ -65,7 +65,7 @@ def main():
     au = tab.atomic_units()
     # Bulk settings
     W0s = np.arange(-100, 50 + 1, 1)*au['GHz']  # required for runtime
-    Eps = np.array([71, 72, 73, 74, 76, 77, 78, 79])*au['mVcm']
+    Eps = np.array([61, 62, 63, 64, 66, 67, 68, 69, 71, 72, 73, 74, 76, 77, 78, 79])*au['mVcm']
     Emw = 4*1000*au['mVcm']
     w_mw = 2*np.pi*15.932/au['ns']
     t0 = 0*au['ns']
