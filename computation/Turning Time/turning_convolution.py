@@ -182,7 +182,7 @@ def prob_and_conv(dfmarks, dW, W0, f, dphi):
 def tt_conv_plot(dW, W0, f, dphi):
     xticks, xticklabels = xticks_2p()
     dfmarks = build_marks()
-    fig, ax = plt.subplots(nrows=3, figsize=(6,9))
+    fig, ax = plt.subplots(nrows=3, figsize=(6, 9))
     dfmarks.plot(x='field', y='tt10', linestyle='', marker='.', label='tt10',
                  alpha=0.5, ax=ax[0])
     dfmarks.plot(x='field', y='tb20', linestyle='', marker='.', label='tb20',
@@ -191,7 +191,7 @@ def tt_conv_plot(dW, W0, f, dphi):
                  alpha=0.5, ax=ax[0])
     ax[0].legend()
     ax[0].set(ylabel="Energy (GHz)", xlabel="Field (mV/cm)",
-                title="Uphill Turning")
+              title="Uphill Turning")
     # mark
     ax[0].axvline(f, color='grey')
     for W in [W0-dW, W0, W0+dW]:
@@ -200,14 +200,14 @@ def tt_conv_plot(dW, W0, f, dphi):
     dfprob, popt = prob_and_conv(dfmarks, dW, W0, f, dphi)
     dfprob.plot(x='phi', y='p', ax=ax[1])
     ax[1].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
-                ylabel=r"$P_{Survival}$", title="Simple Probability")
+              ylabel=r"$P_{Survival}$", title="Simple Probability")
     ax[1].legend().remove()
     dfprob.plot(x='phi', y='conv', ax=ax[2])
     ax[2].axvline(popt[1], color='k')
     ax[2].axhline(popt[2], color='k')
     ax[2].axhline(popt[0] + popt[2], color='k')
     ax[2].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
-                ylabel="Norm. Signal", title="Expected Signal")
+              ylabel="Norm. Signal", title="Expected Signal")
     fig.tight_layout()
     # fit to model
     return dfprob
@@ -236,7 +236,7 @@ def params_bulk(dW, W0, dphi):
 
 def bulk_plot(params):
     xticks, xticklabels = xticks_2p()
-    fig, ax = plt.subplots(nrows=3, sharex='col', figsize=(6,9))
+    fig, ax = plt.subplots(nrows=3, sharex='col', figsize=(6, 9))
     params.plot(x='field', y='y0', ax=ax[0])
     ax[0].set(title=r"Uphill, $W_0$ = -20 GHz", ylabel="Mean")
     params.plot(x='field', y='a', ax=ax[1])
@@ -277,7 +277,7 @@ def build_marks_down():
     mask = mask & mask_NaN
     dftb20 = picked[mask].copy(deep=True)
     dftb20 = dftb20[['field', 'W']]
-    dftb20 = dftb20.append({'field':0, 'W':0}, ignore_index=True)
+    dftb20 = dftb20.append({'field': 0, 'W': 0}, ignore_index=True)
     dftb20['field'] = np.round(dftb20['field'], 0)
     dftb20.sort_values(by='field', inplace=True)
     x = np.arange(min(dftb20['field']), max(dftb20['field']) + 1, 1)
@@ -310,8 +310,9 @@ def build_marks_down():
     return dfmarks
 
 
-def tt_conv_plot_down():
+def tt_conv_plot_down(dW, W0, f, dphi):
     dfmarks = build_marks_down()
+    dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
     # plots
     fig, ax = plt.subplots()
     dfmarks.plot(x='field', y='DIL', linestyle='-', marker='.', label="DIL",
@@ -325,15 +326,36 @@ def tt_conv_plot_down():
     return
 
 
+def prob_and_conv_down(dfmarks, dW, W0, f, dphi):
+    # pick observation
+    obs = dfmarks.loc[f].copy()
+    print(obs)
+    for key in ['DIL', 'tb20', 'tt10']:
+        phi = phase_filter(W0, -dW, obs[key])
+        obs[key] = (np.pi - phi) + np.pi/6
+    print(obs)
+    # build simple probability
+    dfprob = pd.DataFrame({'phi': np.arange(np.pi/6, 7*np.pi/6 + dphi, dphi)})
+    dfprob['p'] = np.nan
+    mask = (dfprob['phi'] > obs['tt10'])
+    dfprob.loc[mask, 'p'] = 0.5
+    mask = (dfprob['phi'] <= obs['tt10']) & (dfprob['phi'] > obs['tb20'])
+    dfprob.loc[mask, 'p'] = 1.0
+    mask = (dfprob['phi'] <= obs['tb20'])
+    dfprob.loc[mask, 'p'] = 0.0
+    return dfprob
+
+
 # main script
 dW = 43
-W0 = -20
-f = 20
+W0 = 0
+f = 10
 dphi = np.pi/180
 # dfprob = tt_conv_plot(dW, W0, f, dphi)
 # params = params_bulk(dW, W0, dphi)
 # params = pd.read_csv("tconv_params_0_up.csv", index_col=0)
 # bulk_plot(params)
-# build_marks_down()
+dfmarks = build_marks_down()
 tt_conv_plot_down()
+dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
 # print(dfmarks)
