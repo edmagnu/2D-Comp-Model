@@ -5,7 +5,7 @@ Created on Wed Jun  6 16:10:00 2018
 @author: labuser
 """
 
-# import os
+import os
 import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -157,7 +157,7 @@ def prob_and_conv(dfmarks, dW, W0, f, dphi):
     mask = (dfprob['phi'] >= obs['tt10']) & (dfprob['phi'] < obs['tp20'])
     dfprob.loc[mask, 'p'] = 0
     mask = (dfprob['phi'] >= obs['tp20']) & (dfprob['phi'] < obs['tb20'])
-    dfprob.loc[mask, 'p'] = 1
+    dfprob.loc[mask, 'p'] = 1  # goldilocks
     mask = (dfprob['phi'] >= obs['tb20'])
     dfprob.loc[mask, 'p'] = 0
     # fold
@@ -214,8 +214,10 @@ def tt_conv_plot(dW, W0, f, dphi):
 
 
 def params_bulk(dW, W0, dphi):
+    # up
     dfmarks = build_marks()
     params = dfmarks.copy()
+    params['Dir'] = -1
     params['dW'] = dW
     params['W0'] = W0
     params['a'] = np.nan
@@ -225,28 +227,103 @@ def params_bulk(dW, W0, dphi):
         f = dfmarks.loc[i, 'field']
         dfprob, popt = prob_and_conv(dfmarks, dW, W0, f, dphi)
         if popt[1] >= 4/6*np.pi:
-            params.loc[i, 'a'] = popt[0]
-        else:
             params.loc[i, 'a'] = -popt[0]
+        else:
+            params.loc[i, 'a'] = popt[0]
         params.loc[i, 'phi'] = popt[1]
         params.loc[i, 'y0'] = popt[2]
-    params.to_csv("tconv_params_m20_up.csv")
+    params = params[['Dir', 'field', 'dW', 'W0', 'a', 'phi', 'y0']]
+    params_up = params.copy()
+    # down
+    dfmarks = build_marks_down()
+    params = dfmarks.copy()
+    params['Dir'] = 1
+    params['dW'] = dW
+    params['W0'] = W0
+    params['a'] = np.nan
+    params['phi'] = np.nan
+    params['y0'] = np.nan
+    for i in dfmarks.index:
+        f = dfmarks.loc[i, 'field']
+        dfprob, popt = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
+        if popt[1] >= 4/6*np.pi:
+            params.loc[i, 'a'] = -popt[0]
+        else:
+            params.loc[i, 'a'] = popt[0]
+        params.loc[i, 'phi'] = popt[1]
+        params.loc[i, 'y0'] = popt[2]
+    params = params[['Dir', 'field', 'dW', 'W0', 'a', 'phi', 'y0']]
+    params_down = params.copy()
+    # massage
+    params = params_up.append(params_down)
+    params = params.sort_values(by=['Dir', 'field'])
+    params = params[['Dir', 'field', 'dW', 'W0', 'a', 'phi', 'y0']]
+    folder = "simple_conv"
+    fname = "tconv_params_" + str(int(np.round(W0, 0))) + ".csv"
+    fname = os.path.join(folder, fname)
+    print(fname)
+    params.to_csv(fname)
     return params
 
 
-def bulk_plot(params):
+def bulk_plot(params_tot):
+    # startup
     xticks, xticklabels = xticks_2p()
-    fig, ax = plt.subplots(nrows=3, sharex='col', figsize=(6, 9))
-    params.plot(x='field', y='y0', ax=ax[0])
-    ax[0].set(title=r"Uphill, $W_0$ = -20 GHz", ylabel="Mean")
-    params.plot(x='field', y='a', ax=ax[1])
-    ax[1].set(ylabel="Amplitude")
-    params.plot(x='field', y='phi', ax=ax[2])
-    ax[2].set(yticks=xticks, yticklabels=xticklabels, ylabel="Phase")
+    fig, ax = plt.subplots(nrows=3, ncols=3, sharex='col', sharey='row',
+                           figsize=(8, 10.5))
+    W0 = params_tot['W0'].unique()[0]
+    # up
+    mask = (params_tot['Dir'] == -1)
+    params = params_tot[mask]
+    params.plot(x='field', y='y0', ax=ax[0, 0])
+    ax[0, 0].set(title=r"Uphill, $W_0$ = {} GHz".format(int(W0)),
+                 ylabel="Mean")
+    params.plot(x='field', y='a', ax=ax[1, 0])
+    ax[1, 0].set(ylabel="Amplitude")
+    params.plot(x='field', y='phi', ax=ax[2, 0])
+    ax[2, 0].set(yticks=xticks, yticklabels=xticklabels, ylabel="Phase")
     for i in [0, 1, 2]:
-        ax[i].grid()
-        ax[i].legend().remove()
+        ax[i, 0].grid()
+        ax[i, 0].legend().remove()
+    # down
+    mask = (params_tot['Dir'] == 1)
+    params = params_tot[mask]
+    params.plot(x='field', y='y0', ax=ax[0, 1])
+    ax[0, 1].set(title=r"Downhill, $W_0$ = {} GHz".format(int(W0)),
+                 ylabel="Mean")
+    params.plot(x='field', y='a', ax=ax[1, 1])
+    ax[1, 1].set(ylabel="Amplitude")
+    params.plot(x='field', y='phi', ax=ax[2, 1])
+    ax[2, 1].set(yticks=xticks, yticklabels=xticklabels, ylabel="Phase")
+    for i in [0, 1, 2]:
+        ax[i, 1].grid()
+        ax[i, 1].legend().remove()
+    # combination
+    mask = (params_tot['Dir'] == -1)
+    params_up = params_tot[mask]
+    mask = (params_tot['Dir'] == 1)
+    params_down = params_tot[mask]
+    params_both = params_up.drop(labels='Dir', axis=1).copy()
+    params_both['y0'] = (params_up['y0'] + params_down['y0'])/2
+    params_both['a'] = (params_up['a'] + params_down['a'])/2
+    params = params_both.copy()
+    params.plot(x='field', y='y0', ax=ax[0, 2])
+    ax[0, 2].set(title=r"Both, $W_0$ = {} GHz".format(int(W0)),
+                 ylabel="Mean")
+    params.plot(x='field', y='a', ax=ax[1, 2])
+    ax[1, 2].set(ylabel="Amplitude")
+    # params.plot(x='field', y='phi', ax=ax[2, 2])
+    # ax[2, 2].set(yticks=xticks, yticklabels=xticklabels, ylabel="Phase")
+    for i in [0, 1]:
+        ax[i, 2].grid()
+        ax[i, 2].legend().remove()
+    for i in [0, 1, 2]:
+        ax[i, 2].set(xlabel="Field (mV/cm)")
     fig.tight_layout()
+    folder = "simple_conv"
+    fname = "tconv_params_" + str(int(np.round(W0, 0))) + "_ysgl.pdf"
+    fname = os.path.join(folder, fname)
+    plt.savefig(fname)
     return
 
 
@@ -311,51 +388,83 @@ def build_marks_down():
 
 
 def tt_conv_plot_down(dW, W0, f, dphi):
+    xticks, xticklabels = xticks_2p()
+    # build
     dfmarks = build_marks_down()
-    dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
+    dfprob, popt = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
     # plots
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(nrows=3, figsize=(6,9))
+    # marks
     dfmarks.plot(x='field', y='DIL', linestyle='-', marker='.', label="DIL",
-                 alpha=0.5, ax=ax)
+                 alpha=0.5, ax=ax[0])
     dfmarks.plot(x='field', y='tt10', linestyle='-', marker='.', label="tt10",
-                 alpha=0.5, ax=ax)
+                 alpha=0.5, ax=ax[0])
     dfmarks.plot(x='field', y='tb20', linestyle='-', marker='.', label="tb20",
-                 alpha=0.5, ax=ax)
-    ax.legend()
-    ax.set(xlabel="Field (mV/cm)", ylabel="Energy (GHz)")
+                 alpha=0.5, ax=ax[0])
+    ax[0].axvline(f, color='grey')
+    for W in [W0-dW, W0, W0+dW]:
+        ax[0].axhline(W, color='grey')
+    ax[0].legend()
+    ax[0].set(xlabel="Field (mV/cm)", ylabel="Energy (GHz)")
+    # probability
+    dfprob.plot(x='phi', y='p', ax=ax[1])
+    ax[1].set(xticks=xticks, xticklabels=xticklabels)
+    # convolution
+    dfprob.plot(x='phi', y='conv', ax=ax[2])
+    ax[2].axvline(popt[1], color='k')
+    ax[2].axhline(popt[2], color='k')
+    ax[2].axhline(popt[0] + popt[2], color='k')
+    ax[2].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
+              ylabel="Norm. Signal", title="Expected Signal")
+    fig.tight_layout()
     return
 
 
 def prob_and_conv_down(dfmarks, dW, W0, f, dphi):
     # pick observation
     obs = dfmarks.loc[f].copy()
-    print(obs)
     for key in ['DIL', 'tb20', 'tt10']:
         phi = phase_filter(W0, -dW, obs[key])
         obs[key] = (np.pi - phi) + np.pi/6
-    print(obs)
     # build simple probability
     dfprob = pd.DataFrame({'phi': np.arange(np.pi/6, 7*np.pi/6 + dphi, dphi)})
     dfprob['p'] = np.nan
     mask = (dfprob['phi'] > obs['tt10'])
     dfprob.loc[mask, 'p'] = 0.5
     mask = (dfprob['phi'] <= obs['tt10']) & (dfprob['phi'] > obs['tb20'])
-    dfprob.loc[mask, 'p'] = 1.0
+    dfprob.loc[mask, 'p'] = 1  # goldilocks
     mask = (dfprob['phi'] <= obs['tb20'])
-    dfprob.loc[mask, 'p'] = 0.0
-    return dfprob
+    dfprob.loc[mask, 'p'] = 0
+    # fold
+    dfprob_a = dfprob.copy()
+    dfprob_a.drop([0, 180], inplace=True)  # don't repeat endpoints
+    dfprob_a['phi'] = 14/6*np.pi - dfprob_a['phi']
+    dfprob = dfprob.append(dfprob_a, ignore_index=True)
+    dfprob['phi'] = np.mod(dfprob['phi'], 2*np.pi)
+    dfprob = dfprob.sort_values(by='phi')
+    # convolution
+    amlaser = laser_envelope(dfprob)
+    conv = np.convolve(dfprob['p'], amlaser['I'], mode='same')
+    dfprob['conv'] = conv[range(len(dfprob['phi']), 2*len(dfprob['phi']))]
+    # parameters
+    y0 = np.mean(dfprob['conv'])
+    a = (max(dfprob['conv']) - min(dfprob['conv']))/2
+    phi = dfprob.loc[dfprob['conv'] == max(dfprob['conv']), 'phi'].iloc[0]
+    popt = [a, phi, y0]
+    return dfprob, popt
 
 
 # main script
 dW = 43
-W0 = 0
+W0 = -20
 f = 10
 dphi = np.pi/180
 # dfprob = tt_conv_plot(dW, W0, f, dphi)
-# params = params_bulk(dW, W0, dphi)
+params = params_bulk(dW, W0, dphi)
 # params = pd.read_csv("tconv_params_0_up.csv", index_col=0)
-# bulk_plot(params)
-dfmarks = build_marks_down()
-tt_conv_plot_down()
-dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
+bulk_plot(params)
+
+# dfmarks = build_marks_down()
+# tt_conv_plot_down(dW, W0, f, dphi)
+# dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
 # print(dfmarks)
