@@ -9,6 +9,7 @@ import turning_and_binding as tab
 import Simple_1D as s1d
 import random
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
 import multiprocessing
 import time
@@ -64,7 +65,7 @@ def main():
     au = tab.atomic_units()
     # Bulk settings
     W0s = np.arange(-100, 50 + 1, 1)*au['GHz']  # required for runtime
-    Eps = np.array([0, 10, 40, 100])*au['mVcm']
+    Eps = np.array([71, 72, 73, 74, 76, 77, 78, 79])*au['mVcm']
     Emw = 4*1000*au['mVcm']
     w_mw = 2*np.pi*15.932/au['ns']
     t0 = 0*au['ns']
@@ -90,6 +91,22 @@ def main():
     return
 
 
+def analysis():
+    au = tab.atomic_units()
+    fname = os.path.join("wfinals", "wfinals_05''00_u.h5")
+    df = pd.read_hdf(fname)
+    df['W0'] = df['W0']/au['GHz']
+    df['Wf'] = df['Wf']/au['GHz']
+    W0s = df['W0'].unique()
+    bounds = np.ones(len(W0s))*np.NaN
+    for i, W0 in enumerate(W0s):
+        mask = (df['W0'] == W0)
+        bounds[i] = sum(df.loc[mask, 'Wf'] < 0)/2000
+    plt.plot(W0s, bounds)
+    return df
+
+
 if __name__ == '__main__':  # run if script is called directly
     multiprocessing.freeze_support()
-    result = main()
+    df = analysis()
+    # result = main()
