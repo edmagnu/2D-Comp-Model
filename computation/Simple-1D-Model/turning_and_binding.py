@@ -150,7 +150,7 @@ def tb_up(W, f):
     """
     zi = -6  # starting position, uphill z < 0
     if f > 0 and W > 0:  # with field and above limit
-        zb = -W/f  # W - fz = 0
+        zb = -W/f  # W + fz = 0
         tb = quad(intg_up, zi, zb, args=(W, f))[0]  # integrator
     elif f > 0 and W <= 0:  # with field and below limit
         # Is always bound
@@ -162,7 +162,29 @@ def tb_up(W, f):
         tb = np.NaN
     else:  # should never get here
         print("tb_up({0}, {1}) : something went wrong".format(W, f))
-        zb = None
+        zb = np.NaN
+        tb = np.NaN
+    return tb
+
+
+def tb_up_dil(W, f, DIL):
+    """ Binding time for an uphill electron with Depressed Limit"""
+    zi = -6  # starting position, z < 0
+    if f > 0 and W > DIL:  # with field and below DIL
+        zb = (DIL - W)/f  # W + fz = DIL
+        tb = quad(intg_up, zi, zb, args=(W, f))[0]  # integrator
+    elif f > 0 and W <= DIL:  # with field and below DIL
+        # Is always bound
+        zb = np.NaN
+        tb = np.NaN
+    elif f == 0:  # No field
+        # Cannot lose energy to field
+        zb = np.NaN
+        tb = np.NaN
+    else:  # should never get here
+        print("tb_up_dil({0}, {1}, {2}): something went wrong".format(
+                W, f, DIL))
+        zb = np.NaN
         tb = np.NaN
     return tb
 
@@ -187,7 +209,26 @@ def tb_down(W, f):
         tb = np.NaN
     else:  # should never get here
         print("tb_down({0}, {1}) : something went wrong".format(W, f))
-        zb = None
+        zb = np.NaN
+        tb = np.NaN
+    return tb
+
+
+def tb_down_dil(W, f, DIL):
+    """Binding time fo rdownhill electron with Depressed Limit"""
+    zi = 6  # starting position, downhill z > 0
+    il = -2*f**0.5  # Ionization limit
+    if f > 0 and W > il and W < DIL:  # field, W between DIL and IL
+        zb = (W - DIL)/f
+        tb = quad(intg_down, zi, zb, args=(W, f))[0]  # integrator
+    elif f == 0 or W <= il or W >= DIL:  #any other condition
+        # Can never cross W = DIL
+        zb = np.NaN
+        tb = np.NaN
+    else:  # should never get here
+        print("tb_down_dil({0}, {1}, {2}) : something went wrong".format(
+                W, f, DIL))
+        zb = np.NaN
         tb = np.NaN
     return tb
 # ==========

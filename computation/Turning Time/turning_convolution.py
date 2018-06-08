@@ -405,10 +405,12 @@ def tt_conv_plot_down(dW, W0, f, dphi):
     for W in [W0-dW, W0, W0+dW]:
         ax[0].axhline(W, color='grey')
     ax[0].legend()
-    ax[0].set(xlabel="Field (mV/cm)", ylabel="Energy (GHz)")
+    ax[0].set(xlabel="Field (mV/cm)", ylabel="Energy (GHz)",
+              title="Downhill Turning")
     # probability
     dfprob.plot(x='phi', y='p', ax=ax[1])
-    ax[1].set(xticks=xticks, xticklabels=xticklabels)
+    ax[1].set(xticks=xticks, xticklabels=xticklabels,
+              ylabel=r"$P_{Survival}$", title="Simple Probability")
     # convolution
     dfprob.plot(x='phi', y='conv', ax=ax[2])
     ax[2].axvline(popt[1], color='k')
@@ -454,17 +456,246 @@ def prob_and_conv_down(dfmarks, dW, W0, f, dphi):
     return dfprob, popt
 
 
+def tt_conv_plot_both(dW, W0, f, dphi):
+    xticks, xticklabels = xticks_2p()
+    fig, ax = plt.subplots(nrows=2, ncols=3, sharex='col', sharey='row',
+                           figsize=(9, 6))
+    # ==========
+    # Uphill
+    # ==========
+    # build
+    dfmarks = build_marks()
+    dfprob, popt = prob_and_conv(dfmarks, dW, W0, f, dphi)
+    # probability
+    dfprob.plot(x='phi', y='p', ax=ax[0, 0])
+    ax[0, 0].set(xticks=xticks, xticklabels=xticklabels,
+                 ylabel=r"$P_{Survival}$", title="Uphill")
+    # convolution
+    dfprob.plot(x='phi', y='conv', ax=ax[1, 0])
+    ax[1, 0].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
+                ylabel="Norm. Signal")
+    dfprob_up = dfprob.copy()
+    # ==========
+    # Downhill
+    # ==========
+    dfmarks = build_marks_down()
+    dfprob, popt = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
+    # probability
+    dfprob.plot(x='phi', y='p', ax=ax[0, 1])
+    ax[0, 1].set(xticks=xticks, xticklabels=xticklabels,
+                 ylabel=r"$P_{Survival}$", title="Downhill")
+    # convolution
+    dfprob.plot(x='phi', y='conv', ax=ax[1, 1])
+    ax[1, 1].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
+                ylabel="Norm. Signal")
+    dfprob_down = dfprob.copy()
+    # ==========
+    # Both
+    # ==========
+    dfprob['p'] = (dfprob_up['p'] + dfprob_down['p'])/2
+    dfprob['conv'] = (dfprob_up['conv'] + dfprob_down['conv'])/2
+    # probability
+    dfprob.plot(x='phi', y='p', ax=ax[0, 2])
+    ax[0, 2].set(xticks=xticks, xticklabels=xticklabels,
+                 ylabel=r"$P_{Survival}$", title="Combined")
+    # convolution
+    dfprob.plot(x='phi', y='conv', ax=ax[1, 2])
+    ax[1, 2].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
+                ylabel="Norm. Signal")
+    dfprob_down = dfprob.copy()
+    # ==========
+    # finish
+    for i in [0, 1, 2]:
+        ax[0, i].legend().remove()
+        ax[1, i].legend().remove()
+    suptitle = (r"Simple Model, $E_{pulsed}$ = " +
+                r"{0} mV/cm, $W_0$ = {1} GHz".format(int(f), int(W0)))
+    fig.suptitle(suptitle)
+    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fname = os.path.join("simple_conv", "{0}mVcm_{1}GHz_both.pdf".format(
+            int(f), int(W0)))
+    fig.savefig(fname)
+    return dfprob_up, dfprob_down
+
+# ==========
+# up_and_down_orbits.pdf
+# ==========
+def interp_match(df1, df2, kx, ky):
+    x = np.intersect1d(df1[kx], df2[kx])
+    y1 = np.interp(x, df1[kx], df1[ky])
+    y2 = np.interp(x, df2[kx], df2[ky])
+    return x, y1, y2
+
+
+def turning_time_figure(field_picks, W0_pick):
+    au = atomic_units()
+    # import data
+    # dname = os.path.join("..", "2D-Comp-Model", "computation", "Turning Time")
+    # fname = os.path.join(dname, "data_raw.txt")
+    data_tot = pd.read_csv("data_raw.txt", index_col=0)
+    # fname = os.path.join(dname, "picked_w.txt")
+    picked_tot = pd.read_csv("picked_w.txt", index_col=0)
+    # convert to lab units
+    picked_tot['W'] = picked_tot['W']/au['GHz']
+    picked_tot['field'] = picked_tot['field']/au['mVcm']
+    # plot
+    fig, axes = plt.subplots(ncols=2, figsize=(6, 3), sharey=True)
+    ymin, ymax = -100, 100
+    xmin, xmax = 0, 100
+    # ==========
+    # uphill figure
+    # ==========
+    ax = axes[0]
+    colors = ['C2', 'C3', 'C9']
+    # mask uphill values (Dir == -1)
+    picked = picked_tot[picked_tot['Dir'] == -1].copy(deep=True)
+    # NaN mask
+    mask_NaN = (np.logical_not(np.isnan(picked['W'])))
+    mask_NaN = mask_NaN & (np.logical_not(np.isnan(picked['field'])))
+    # turning time = 10 ns
+    mask = (picked['kind'] == 'tt=10')
+    mask = mask & mask_NaN
+    dftt10 = picked[mask].copy(deep=True)
+    dftt10.sort_values(by='field', inplace=True)
+    dftt10.plot(x='field', y='W', label='tturn=10', color='k', lw=3, ax=ax)
+    # upper binding time = 20 ns
+    mask = (picked['kind'] == 'tplus=20')
+    mask = mask & mask_NaN
+    dftplus = picked[mask].copy(deep=True)
+    dftplus.sort_values(by='field', inplace=True)
+    dftplus.plot(x='field', y='W', label='tplus=20', color='k', lw=3, ax=ax)
+    # lower binding time = 20 ns
+    mask = (picked['kind'] == 'tb=20')
+    mask = mask & mask_NaN
+    dftbind = picked[mask].copy(deep=True)
+    obs = dftbind.iloc[-1].copy(deep=True)
+    obs['W'] = 0
+    obs['field'] = 0
+    dftbind = dftbind.append(obs, ignore_index=True).copy(deep=True)
+    dftbind.sort_values(by='field', inplace=True)
+    dftbind.plot(x='field', y='W', label='tb=20', color='k', lw=3, ax=ax)
+    # fill between
+    # If turning time < 10 ns, return is < 20 ns, survival is chaotic
+    ax.fill_between(dftt10['field'], dftt10['W'], ymin, color=colors[2])
+    # If between tbind and tplus, it's in a safe "long orbit"
+    x, y1, y2 = interp_match(dftbind, dftplus, 'field', 'W')
+    ax.fill_between(x, y1, y2, color=colors[0])
+    mask = (dftplus['field'] >= max(x))
+    ax.fill_between(dftplus[mask]['field'], ymax, dftplus[mask]['W'],
+                    color=colors[0])
+    mask = (dftbind['field'] <= min(x))
+    x, y1, y2 = interp_match(dftbind[mask], dftt10, 'field', 'W')
+    ax.fill_between(x, y1, y2, color=colors[0])
+    # If above tbind or between tt10, it's lost
+    ax.fill_between(dftbind['field'], ymax, dftbind['W'], color=colors[1])
+    x, y1, y2 = interp_match(dftplus, dftt10, 'field', 'W')
+    ax.fill_between(x, y1, y2, color=colors[1])
+    mask = (dftt10['field'] >= max(x))
+    ax.fill_between(dftt10[mask]['field'], ymax, dftt10[mask]['W'],
+                    color=colors[1])
+    # text labels
+    props = dict(boxstyle='round', facecolor='white', alpha=1.0)
+    align = {'verticalalignment': 'top',
+             'horizontalalignment': 'center'}
+    ax.text(80, 95, "(d)", **align, bbox=props)  # chaotic
+    ax.text(50, 95, "(c)", **align, bbox=props)  # Immediate Ionization
+    ax.text(32, 95, "(b)", **align, bbox=props)  # Goldylocks Zone
+    ax.text(10, 95, "(a)", **align, bbox=props)  # Late Return & Ionization
+    # touch ups
+    ax.set(xlabel="Pulsed Field (mV/cm)", xlim=(xmin, xmax),
+           ylabel=r"$W_0 + \Delta W_{MW}(\phi)$ (GHz)", ylim=(ymin, ymax),
+           title="Uphill Electrons")
+    # add lines
+    for f in field_picks:
+        ax.axvline(f, color='k', lw=3, linestyle='dashed')
+    ax.axhline(W0_pick, color='k', lw=3, linestyle='dashed')
+    ax.legend().remove()
+    # ==========
+    # downhill figure
+    # ==========
+    ax = axes[1]
+    colors = ['C2', 'C3', 'C9']
+    # mask uphill values (Dir == 1)
+    picked = picked_tot[picked_tot['Dir'] == 1].copy(deep=True)
+    # NaN mask
+    mask_NaN = (np.logical_not(np.isnan(picked['W'])))
+    mask_NaN = mask_NaN & (np.logical_not(np.isnan(picked['field'])))
+    # lower binding time = 20 ns
+    mask = (picked['kind'] == 'tb=20')
+    mask = mask & mask_NaN
+    dftbind = picked[mask].copy(deep=True)
+    obs = dftbind.iloc[-1].copy(deep=True)
+    obs['W'] = 0
+    obs['field'] = 0
+    dftbind = dftbind.append(obs, ignore_index=True)
+    dftbind.sort_values(by='field', inplace=True)
+    dftbind.plot(x='field', y='W', label='tb=20', color='k', lw=3, ax=ax)
+    # turning time = 10 ns
+    mask = (picked['kind'] == 'tt=10')
+    mask = mask & mask_NaN
+    dftt10 = picked[mask].copy(deep=True)
+    dftt10.sort_values(by='field', inplace=True)
+    obs = dftbind.iloc[-4]
+    dftt10 = dftt10.append(obs, ignore_index=True)
+    dftt10.plot(x='field', y='W', label='tturn=10', color='k', lw=3, ax=ax)
+    # DIL W = -2 E^0.5
+    dfdil = pd.DataFrame({'field': np.arange(xmin, xmax+1, 1)})
+    dfdil['W'] = -2*np.sqrt(dfdil['field']*au['mVcm'])/au['GHz']
+    mask = (dfdil['field'] >= max(dftt10['field']))
+    dfdil = dfdil[mask]
+    dfdil.plot(x='field', y='W', label='DIL', color='k', lw=3, ax=ax)
+    # fill between
+    # Above binding time = 20 ns, Immediately Ionizes
+    ax.fill_between(dftbind['field'], ymax, dftbind['W'], color=colors[1])
+    ax.fill_between(dfdil['field'], ymax, dfdil['W'], color=colors[1])
+    # Below turning time = 10 ns, Chaotic
+    ax.fill_between(dftt10['field'], dftt10['W'], ymin, color=colors[2])
+    mask = (dftbind['field'] >= max(dftt10['field']))
+    ax.fill_between(dftbind[mask]['field'], dftbind[mask]['W'], ymin,
+                    color=colors[2])
+    ax.fill_between(dfdil['field'], dfdil['W'], ymin, color=colors[2])
+    # Between binding time = 20ns and turnign time = 10 ns, Goldylocks
+    x, y1, y2 = interp_match(dftbind, dftt10, 'field', 'W')
+    ax.fill_between(x, y1, y2, color=colors[0])
+    # text labels
+    props = dict(boxstyle='round', facecolor='white', alpha=1.0)
+    align = {'verticalalignment': 'center',
+             'horizontalalignment': 'left'}
+    ax.text(2.5, -50, "(d)", **align, bbox=props)  # chaotic
+    # ax.text(0, 50, "(c)", **align, bbox=props)  # Late Return and Ionize
+    ax.text(10, 0, "(b)", **align, bbox=props)  # Goldylocks Zone
+    ax.text(2.5, 50, "(a)", **align, bbox=props)  # Immediate Ionization
+    # touch ups
+    ax.set(xlabel="Pulsed Field (mV/cm)", xlim=(xmin, xmax),
+           ylabel=r"$W_0 + \Delta W_{MW}(\phi)$ (GHz)", ylim=(ymin, ymax),
+           title="Downhill Electrons")
+    ax.legend().remove()
+    # add lines
+    for f in field_picks:
+        ax.axvline(f, color='k', lw=3, linestyle='dashed')
+    ax.axhline(W0_pick, color='k', lw=3, linestyle='dashed')
+    # save
+    fig.tight_layout()
+    fname = os.path.join("simple_conv", "up_and_down_orbits_lined.pdf")
+    plt.savefig(fname)
+    return data_tot, picked_tot
+
+
+
 # main script
 dW = 43
-W0 = -20
-f = 10
+W0 = 0
+f = 30
 dphi = np.pi/180
-# dfprob = tt_conv_plot(dW, W0, f, dphi)
-params = params_bulk(dW, W0, dphi)
+# dfprob_up = tt_conv_plot(dW, W0, f, dphi)
+# params = params_bulk(dW, W0, dphi)
 # params = pd.read_csv("tconv_params_0_up.csv", index_col=0)
-bulk_plot(params)
+# bulk_plot(params)
 
 # dfmarks = build_marks_down()
-# tt_conv_plot_down(dW, W0, f, dphi)
+# dfprob_down = tt_conv_plot_down(dW, W0, f, dphi)
 # dfprob = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
 # print(dfmarks)
+
+# dfprob_up, dfprob_down = tt_conv_plot_both(dW, W0, f, dphi)
+turning_time_figure([0, 15, 30], W0)
