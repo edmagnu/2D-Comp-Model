@@ -367,6 +367,11 @@ def tb_up_W_target(W, f):
     return abs(tb_up(W, f) - 826828000.0)  # 20 ns in a.u.
 
 
+def tb_up_W_target_dil(W, f, DIL):
+    """tb_up_dil(W, f, DIL) - 20 ns"""
+    return abs(tb_up_dil(W, f, DIL) - 826828000.0)  # 20 ns in a.u.
+
+
 def tb_up_W(f):
     """Given field f (a.u.), find W (a.u.) so that tb_up(W, f) = 20ns."""
     if f > 0:
@@ -382,9 +387,30 @@ def tb_up_W(f):
     return result['x']
 
 
+def tb_up_W_dil(f, DIL):
+    """Given field f (a.u.) and DIL (a.u.), find W (a.u.) so that
+    tb_up(W, f, DIL) = 20 ns."""
+    if f > 0:
+        # bound to avoid NaN
+        # max for f=300 mV/cm
+        bound = (0 + np.finfo(float).eps, 10000*1.51983e-07)
+        msopts = {'xatol': 1e-10}  # 1 MHz
+        # bounded to keep from returning NaN
+        result = minimize_scalar(tb_up_W_target_dil, method='Bounded',
+                                 bounds=bound, args=(f, DIL), options=msopts)
+    if f == 0:
+        result = {'x': 0}
+    return result['x']
+
+
 def tb_down_W_target(W, f):
     """tb_down(W, f) - 20ns"""
     return abs(tb_down(W, f) - 826828000.0)  # 20 ns in a.u.
+
+
+def tb_down_W_target_dil(W, f, DIL):
+    """tb_down_dil(W, f, DIL) - 20 ns"""
+    return abs(tb_down_dil(W, f, DIL) - 826828000.0)  # 20 ns in a.u.
 
 
 def tb_down_W(f):
@@ -402,9 +428,31 @@ def tb_down_W(f):
     return result['x']
 
 
+def tb_down_W_dil(f, DIL):
+    """Given field f (a.u.), find W (a.u.) so that
+    tb_down_dil(W, f) = 20 ns."""
+    if f > 0:
+        # bound to avoid NaN
+        # il < W < DIL
+        bound = (-2*f**0.5 + np.finfo(float).eps, 0 - np.finfo(float).eps)
+        msopts = {'xatol': 1e-10}  # 1 MHz
+        # bounded to keep from returnign NaN
+        result = minimize_scalar(tb_down_W_target_dil, method='Bounded',
+                                 bounds=bound, args=(f, DIL), options=msopts)
+    if f==0:
+        result = {'x': 0}
+    return result['x']
+
+
 def tp_up_W_target(W, f):
     """2*tt_up(W, f) - tb_up(W, f) - 20 ns"""
     return abs(2*tt_up(W, f) - tb_up(W, f) - 826828000.0)  # 20 ns in a.u.
+
+
+def tp_up_W_target_dil(W, f, DIL):
+    """2*tt_up(W, f) - tb_up_dil(W, f, DIL) - 20 ns"""
+    # 20 ns in a.u.
+    return abs(2*tt_up(W, f) - tb_up_dil(W, f, DIL) - 826828000.0)
 
 
 def tp_up_W(f):
@@ -416,6 +464,22 @@ def tp_up_W(f):
         msopts = {'xatol': 1e-10}  # 1 MHz
         # bounded to keep from returning NaN
         result = minimize_scalar(tp_up_W_target, method='Bounded',
+                                 bounds=bound, args=f, options=msopts)
+    if f == 0:
+        result = {'x': np.NaN}
+    return result['x']
+
+
+def tp_up_W_dil(f, DIL):
+    """Given field f (a.u.), find W (a.u.) so that
+    2*tt_up - tb_up_dil = 20 ns."""
+    if f > 0:
+        # bound to avoid NaN
+        # max for f=300 mV/cm
+        bound = (0 + np.finfo(float).eps, 10000*1.51983e-07)
+        msopts = {'xatol': 1e-10}  # 1 MHz
+        # bounded to keep from returning NaN
+        result = minimize_scalar(tp_up_W_target_dil, method='Bounded',
                                  bounds=bound, args=f, options=msopts)
     if f == 0:
         result = {'x': np.NaN}
