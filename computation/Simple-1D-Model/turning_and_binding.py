@@ -170,21 +170,25 @@ def tb_up(W, f):
 def tb_up_dil(W, f, DIL):
     """ Binding time for an uphill electron with Depressed Limit"""
     zi = -6  # starting position, z < 0
-    if f > 0 and W > DIL:  # with field and below DIL
-        zb = (DIL - W)/f  # W + fz = DIL
+    zt = -1/(2*f) * (W + np.sqrt(W**2 + 4*f))  # W + -1/z - fz = 0
+    print("zt = ", zt)
+    zb = (DIL - W)/f  # W + fz = DIL
+    print("zb = ", zb)
+    # with field AND below DIL AND binding happens before turning
+    if f > 0 and W > DIL and abs(zb) < abs(zt):
         tb = quad(intg_up, zi, zb, args=(W, f))[0]  # integrator
+        print("tb = ", tb)
+    elif abs(zb) >= abs(zt):  # never gets to turning point
+        tb = np.NaN
     elif f > 0 and W <= DIL:  # with field and below DIL
         # Is always bound
-        zb = np.NaN
         tb = np.NaN
     elif f == 0:  # No field
         # Cannot lose energy to field
-        zb = np.NaN
         tb = np.NaN
     else:  # should never get here
         print("tb_up_dil({0}, {1}, {2}): something went wrong".format(
                 W, f, DIL))
-        zb = np.NaN
         tb = np.NaN
     return tb
 
@@ -201,7 +205,7 @@ def tb_down(W, f):
     zi = 6  # starting position, downhilll z > 0
     il = -2*f**0.5  # Ionization limit
     if f > 0 and W > il and W < 0:  # field, W between 0 and Ionization Limit
-        zb = -W/f  # W - fz = 0
+        zb = -W/f  # W + fz = 0
         tb = quad(intg_down, zi, zb, args=(W, f))[0]  # integrator
     elif f == 0 or W <= il or W >= 0:  # any other condition
         # Can never cross W = 0
@@ -219,7 +223,7 @@ def tb_down_dil(W, f, DIL):
     zi = 6  # starting position, downhill z > 0
     il = -2*f**0.5  # Ionization limit
     if f > 0 and W > il and W < DIL:  # field, W between DIL and IL
-        zb = (W - DIL)/f
+        zb = (DIL - W)/f  # W + fz = DIL
         tb = quad(intg_down, zi, zb, args=(W, f))[0]  # integrator
     elif f == 0 or W <= il or W >= DIL:  #any other condition
         # Can never cross W = DIL
@@ -486,6 +490,31 @@ def tp_up_W_dil(f, DIL):
     return result['x']
 # ==========
 
+
+# ==========
+# DIL testing
+# ==========
+def compare_dil():
+    """Test dil and non-dil tb and tp results."""
+    au = atomic_units()
+    f = 10*au['mVcm']
+    # test that tb and tb_dil are the same at DIL=0
+    W = 10*au['GHz']
+    tbu0 = tb_up(W, f)
+    tbud = tb_up_dil(W, f, 0)
+    print("tb_up == tb_up_dil for DIL=0 : ", tbu0 == tbud)
+    W = -10*au['GHz']
+    # il = -2*f**0.5
+    tbd0 = tb_down(W, f)
+    tbdd = tb_down_dil(W, f, 0)
+    print("tb_down == tb_down_dil for DIL=0 : ", tbd0 == tbdd)
+    # test that tb_up < tb_up_dil
+    DIL = -7*au['GHz']
+    W = 5*au['GHz']
+    tbu0 = tb_up(W, f)
+    tbud = tb_up_dil(W, f, DIL)
+    print("tb_up < tb_up_dil : ", tbu0 < tbud)
+    return
 
 # ==========
 # bulk
@@ -842,8 +871,9 @@ def plot_conds():
 
 
 def main():
-    lookup_table()
-    build_lut_f()
+    # lookup_table()
+    # build_lut_f()
+    compare_dil()
     return
 
 
