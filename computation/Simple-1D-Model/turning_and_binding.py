@@ -171,13 +171,10 @@ def tb_up_dil(W, f, DIL):
     """ Binding time for an uphill electron with Depressed Limit"""
     zi = -6  # starting position, z < 0
     zt = -1/(2*f) * (W + np.sqrt(W**2 + 4*f))  # W + -1/z - fz = 0
-    print("zt = ", zt)
     zb = (DIL - W)/f  # W + fz = DIL
-    print("zb = ", zb)
     # with field AND below DIL AND binding happens before turning
     if f > 0 and W > DIL and abs(zb) < abs(zt):
         tb = quad(intg_up, zi, zb, args=(W, f))[0]  # integrator
-        print("tb = ", tb)
     elif abs(zb) >= abs(zt):  # never gets to turning point
         tb = np.NaN
     elif f > 0 and W <= DIL:  # with field and below DIL
@@ -394,14 +391,19 @@ def tb_up_W(f):
 def tb_up_W_dil(f, DIL):
     """Given field f (a.u.) and DIL (a.u.), find W (a.u.) so that
     tb_up(W, f, DIL) = 20 ns."""
+    au = atomic_units()
+    W_equ = (DIL**2 -f)/DIL
+    print("W_equ = ", W_equ/au['GHz'], " GHz")
+    print("tb_up_dil(W_equ) = ", tb_up_dil(W_equ, f, DIL)/au['ns'], " ns")
     if f > 0:
         # bound to avoid NaN
         # max for f=300 mV/cm
-        bound = (0 + np.finfo(float).eps, 10000*1.51983e-07)
+        bound = (DIL + np.finfo(float).eps, W_equ)
         msopts = {'xatol': 1e-10}  # 1 MHz
         # bounded to keep from returning NaN
         result = minimize_scalar(tb_up_W_target_dil, method='Bounded',
                                  bounds=bound, args=(f, DIL), options=msopts)
+        print("Result => ", tb_up_dil(result['x'], f, DIL)/au['ns'], " ns")
     if f == 0:
         result = {'x': 0}
     return result['x']
@@ -520,6 +522,14 @@ def test_dil():
     tbd0 = tb_down(W, f)
     tbdd = tb_down_dil(W, f, DIL)
     print("tb_down > tb_down_dil : ", tbd0 > tbdd)
+    # W targeting
+    # up binding and plus
+    f = 1*au['mVcm']
+    DIL = -7*au['GHz']
+    # Wtbu0 = tb_up_W(f)
+    Wtbud = tb_up_W_dil(f, DIL)
+    # print("W(tb=20ns, DIL=0) = ", Wtbu0/au['GHz'])
+    print("W(tb=20ns, DIL=-7GHz) = ", Wtbud/au['GHz'])
     return
 
 # ==========
@@ -875,6 +885,13 @@ def plot_conds():
     return df
 # ==========
 
+
+# ==========
+# Conditions Bulk
+# Build data table of W0 given f and DIL that satisfy certain conditions.
+# ==========
+
+# ==========
 
 def main():
     # lookup_table()
