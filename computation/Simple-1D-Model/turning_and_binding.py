@@ -494,7 +494,7 @@ def tp_up_W_dil(f, DIL):
 # ==========
 # DIL testing
 # ==========
-def compare_dil():
+def test_dil():
     """Test dil and non-dil tb and tp results."""
     au = atomic_units()
     f = 10*au['mVcm']
@@ -514,6 +514,12 @@ def compare_dil():
     tbu0 = tb_up(W, f)
     tbud = tb_up_dil(W, f, DIL)
     print("tb_up < tb_up_dil : ", tbu0 < tbud)
+    # test that tb_down > tb_down_dil
+    DIL = -7*au['GHz']
+    W = -10*au['GHz']
+    tbd0 = tb_down(W, f)
+    tbdd = tb_down_dil(W, f, DIL)
+    print("tb_down > tb_down_dil : ", tbd0 > tbdd)
     return
 
 # ==========
@@ -873,7 +879,7 @@ def plot_conds():
 def main():
     # lookup_table()
     # build_lut_f()
-    compare_dil()
+    test_dil()
     return
 
 
