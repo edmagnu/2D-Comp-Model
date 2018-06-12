@@ -170,8 +170,12 @@ def tb_up(W, f):
 def tb_up_dil(W, f, DIL):
     """ Binding time for an uphill electron with Depressed Limit"""
     zi = -6  # starting position, z < 0
-    zt = -1/(2*f) * (W + np.sqrt(W**2 + 4*f))  # W + -1/z - fz = 0
-    zb = (DIL - W)/f  # W + fz = DIL
+    if f > 0:
+        zt = -1/(2*f) * (W + np.sqrt(W**2 + 4*f))  # W + -1/z - fz = 0
+        zb = (DIL - W)/f  # W + fz = DIL
+    else:
+        zt = np.inf
+        zb = np.inf
     # with field AND below DIL AND binding happens before turning
     if f > 0 and W > DIL and abs(zb) < abs(zt):
         tb = quad(intg_up, zi, zb, args=(W, f))[0]  # integrator
@@ -222,7 +226,7 @@ def tb_down_dil(W, f, DIL):
     if f > 0 and W > il and W < DIL:  # field, W between DIL and IL
         zb = (DIL - W)/f  # W + fz = DIL
         tb = quad(intg_down, zi, zb, args=(W, f))[0]  # integrator
-    elif f == 0 or W <= il or W >= DIL:  #any other condition
+    elif f == 0 or W <= il or W >= DIL:  # any other condition
         # Can never cross W = DIL
         zb = np.NaN
         tb = np.NaN
@@ -391,21 +395,26 @@ def tb_up_W(f):
 def tb_up_W_dil(f, DIL):
     """Given field f (a.u.) and DIL (a.u.), find W (a.u.) so that
     tb_up(W, f, DIL) = 20 ns."""
-    au = atomic_units()
-    W_equ = (DIL**2 -f)/DIL
-    print("W_equ = ", W_equ/au['GHz'], " GHz")
-    print("tb_up_dil(W_equ) = ", tb_up_dil(W_equ, f, DIL)/au['ns'], " ns")
-    if f > 0:
+    # au = atomic_units()
+    W_equ = (DIL**2 - f)/DIL  # energy where z_turning = DIL z_binding
+    # a bit less than W_equ to make sure zb < zt
+    t_equ = tb_up_dil(W_equ - 10*np.finfo(float).eps, f, DIL)
+    # print("W_equ = ", W_equ/au['GHz'], " GHz")
+    # print("t_equ = ", t_equ/au['ns'], " ns")
+    if f > 0 and t_equ > 20*41341400:  # is it possible for tb_dil < 20 ns?
         # bound to avoid NaN
-        # max for f=300 mV/cm
-        bound = (DIL + np.finfo(float).eps, W_equ)
+        # min at DIL and max at W_equ where z_turning = DIL z_binding
+        bound = (DIL + np.finfo(float).eps, W_equ - np.finfo(float).eps)
         msopts = {'xatol': 1e-10}  # 1 MHz
         # bounded to keep from returning NaN
         result = minimize_scalar(tb_up_W_target_dil, method='Bounded',
                                  bounds=bound, args=(f, DIL), options=msopts)
-        print("Result => ", tb_up_dil(result['x'], f, DIL)/au['ns'], " ns")
-    if f == 0:
-        result = {'x': 0}
+        # print("Result => ", tb_up_dil(result['x'], f, DIL)/au['ns'], " ns")
+    elif f > 0 and t_equ <= 20*41341400:  # impossible for tb_dil < 20 ns
+        # print("t_equ = ", t_equ, " ns")
+        result = {'x': np.NaN}
+    elif f == 0:
+        result = {'x': DIL}
     return result['x']
 
 
@@ -445,7 +454,7 @@ def tb_down_W_dil(f, DIL):
         # bounded to keep from returnign NaN
         result = minimize_scalar(tb_down_W_target_dil, method='Bounded',
                                  bounds=bound, args=(f, DIL), options=msopts)
-    if f==0:
+    if f == 0:
         result = {'x': 0}
     return result['x']
 
@@ -479,16 +488,24 @@ def tp_up_W(f):
 def tp_up_W_dil(f, DIL):
     """Given field f (a.u.), find W (a.u.) so that
     2*tt_up - tb_up_dil = 20 ns."""
-    if f > 0:
+    au = atomic_units()
+    W_equ = (DIL**2 - f)/DIL  # energy where z_turning = DIL z_binding
+    print("W_equ = ", W_equ/au['GHz'], " GHz")
+    # a bit less than W_equ to make sure zb < zt
+    t_equ = tb_up_dil(W_equ - 10*np.finfo(float).eps, f, DIL)
+    print("t_equ = ", t_equ/au['ns'], " ns")
+    if f > 0 and t_equ > 10*41341400:  # is it possible for tb_dil < 20 ns?
         # bound to avoid NaN
         # max for f=300 mV/cm
-        bound = (0 + np.finfo(float).eps, 10000*1.51983e-07)
+        bound = (DIL + np.finfo(float).eps, W_equ - np.finfo(float).eps)
         msopts = {'xatol': 1e-10}  # 1 MHz
         # bounded to keep from returning NaN
         result = minimize_scalar(tp_up_W_target_dil, method='Bounded',
-                                 bounds=bound, args=f, options=msopts)
-    if f == 0:
+                                 bounds=bound, args=(f, DIL), options=msopts)
+    elif f > 0 and t_equ <= 10*41341400:
         result = {'x': np.NaN}
+    if f == 0:
+        result = {'x': DIL}
     return result['x']
 # ==========
 
@@ -523,14 +540,41 @@ def test_dil():
     tbdd = tb_down_dil(W, f, DIL)
     print("tb_down > tb_down_dil : ", tbd0 > tbdd)
     # W targeting
-    # up binding and plus
-    f = 1*au['mVcm']
+    # up binding
+    f = 2*au['mVcm']
     DIL = -7*au['GHz']
-    # Wtbu0 = tb_up_W(f)
+    Wtbu0 = tb_up_W(f)
     Wtbud = tb_up_W_dil(f, DIL)
-    # print("W(tb=20ns, DIL=0) = ", Wtbu0/au['GHz'])
-    print("W(tb=20ns, DIL=-7GHz) = ", Wtbud/au['GHz'])
+    print("W(tb=20ns, DIL=0) > W(tb=20ns, DIL=-7GHz) : ", Wtbu0 > Wtbud)
+    # up plus
+    f = 8*au['mVcm']
+    DIL = -7*au['GHz']
+    # W = -6*au['GHz']
+    print("W(tp_up = 20 ns)", tp_up_W_dil(f, DIL)/au['GHz'], "GHz")
+    Ws = np.arange(-7, 10, 0.1)*au['GHz']
+    tps = np.ones(len(Ws))*np.NaN
+    tbs = np.ones(len(Ws))*np.NaN
+    tts = np.ones(len(Ws))*np.NaN
+    for i, Wi in enumerate(Ws):
+        ttu = tt_up(Wi, f)
+        tbud = tb_up_dil(Wi, f, DIL)
+        tpud = 2*ttu - tbud
+        tps[i] = tpud
+        tbs[i] = tbud
+        tts[i] = ttu
+    plt.plot(Ws/au['GHz'], tps/au['ns'], label="tplus")
+    plt.plot(Ws/au['GHz'], tbs/au['ns'], label="tb")
+    plt.plot(Ws/au['GHz'], tts/au['ns'], label="tt")
+    plt.axhline(20, color='k')
+    plt.axvline(-7, color='k')
+    plt.xlabel("Energy (GHz)")
+    plt.ylabel("time (ns)")
+    plt.legend()
+    # print("tt_up = ", tt_up(W, f)/au['ns'], " ns")
+    # print("tb_up_dil = ", tb_up_dil(W, f, DIL)/au['ns'], " ns")
+    # print("tp_dil = ", (2*tt_up(W, f) - tb_up_dil(W, f, DIL))/au['ns'], " ns")
     return
+
 
 # ==========
 # bulk
