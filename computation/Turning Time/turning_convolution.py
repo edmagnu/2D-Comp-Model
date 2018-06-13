@@ -84,6 +84,7 @@ def build_marks():
     # import data
     fname = "picked_w.txt"
     picked_tot = pd.read_csv(fname, index_col=0)
+    dfdilb = pd.read_csv("dil_binding.txt", index_col=0)
     # convert to lab units
     picked_tot['W'] = picked_tot['W']/au['GHz']
     picked_tot['field'] = picked_tot['field']/au['mVcm']
@@ -179,6 +180,80 @@ def prob_and_conv(dfmarks, dW, W0, f, dphi):
     return dfprob, popt
 
 
+def prob_and_conv_dil(dfmarks, dW, W0, f, dphi):
+    # pick observation
+    obs = dfmarks.loc[f]
+    dfdilb = pd.read_csv("dil_binding.txt", index_col=0)
+    if f <= 10:
+        obs['wi'] = dfdilb.loc[f, 'wi']
+        obs['wf'] = dfdilb.loc[f, 'wf']
+    else:
+        obs['wi'] = np.NaN
+        obs['wf'] = np.NaN
+    # print(obs)
+    obs_W = obs.copy()
+    for key in ['tt10', 'tp20', 'tb20', 'wi', 'wf']:
+        phi = phase_filter(W0, dW, obs[key])
+        obs[key] = (np.pi - phi) + np.pi/6
+    # build simple probability
+    dfprob = pd.DataFrame({'phi': np.arange(np.pi/6, 7*np.pi/6 + dphi, dphi)})
+    dfprob['W'] = W0 - np.cos(dfprob['phi'] - np.pi/6)*dW
+    dfprob['p'] = np.nan
+    if f > 10:
+        mask = (dfprob['phi'] < obs['tt10'])
+        dfprob.loc[mask, 'p'] = 0.5
+        dfprob.loc[np.logical_not(mask), 'p'] = 0.0
+        # mask = (dfprob['phi'] >= obs['tt10']) & (dfprob['phi'] < obs['tp20'])
+        # dfprob.loc[mask, 'p'] = 0
+        # mask = (dfprob['phi'] >= obs['tp20']) & (dfprob['phi'] < obs['tb20'])
+        # dfprob.loc[mask, 'p'] = 1  # goldilocks
+        # mask = (dfprob['phi'] >= obs['tb20'])
+        # dfprob.loc[mask, 'p'] = 0
+    if f <= 10:
+        mask = (dfprob['phi'] < obs['tt10'])
+        dfprob.loc[mask, 'p'] = 0.5
+        if np.isnan(obs['wi']):
+            mask = (dfprob['phi'] < obs['wf']) & (dfprob['phi'] >= obs['tt10'])
+            dfprob.loc[mask, 'p'] = 0  # goldilocks
+        else:
+            mask = (dfprob['phi'] < obs['wf']) & (dfprob['phi'] >= obs['wi'])
+            dfprob.loc[mask, 'p'] = 0  # goldilocks
+            mask = (dfprob['phi'] < obs['wi']) & (dfprob['phi'] >= obs['tt10'])
+            dfprob.loc[mask, 'p'] = 0
+        mask = (dfprob['phi'] >= obs['wf'])
+        dfprob.loc[mask, 'p'] = 0
+    # mask = ((dfprob['phi'] < obs['tt10']) &
+    #         (dfprob['phi'] >= (obs['tt10'] - np.pi)))
+    mask = (dfprob['W'] < obs_W['tt10'])
+    # print("W(tt10) = ", obs_W['tt10'])
+    Wdist = np.abs(dfprob.loc[mask, 'W'] - obs_W['tt10'])
+    Wdist[Wdist > dW] = dW
+    pdist = np.arccos(Wdist/dW)
+    pdist[np.isnan(pdist)] = np.pi
+    val = 0.5 - 0.5*pdist/np.pi
+    # print(len(dfprob[mask]), len(val))
+    dfprob.loc[mask, 'p'] = val
+    # plt.plot(dfprob.loc[mask, 'phi'], dist)
+    # dfprob.loc[mask, 'p'] = (1 - dfprob['phi'] - obs['tt10'])/(2*np.pi))*0.5
+    # fold
+    dfprob_a = dfprob.copy()
+    dfprob_a.drop([0, 180], inplace=True)  # don't repeat endpoints
+    dfprob_a['phi'] = 14/6*np.pi - dfprob_a['phi']
+    dfprob = dfprob.append(dfprob_a, ignore_index=True)
+    dfprob['phi'] = np.mod(dfprob['phi'], 2*np.pi)
+    dfprob = dfprob.sort_values(by='phi')
+    # convolution
+    amlaser = laser_envelope(dfprob)
+    conv = np.convolve(dfprob['p'], amlaser['I'], mode='same')
+    dfprob['conv'] = conv[range(len(dfprob['phi']), 2*len(dfprob['phi']))]
+    # parameters
+    y0 = np.mean(dfprob['conv'])
+    a = (max(dfprob['conv']) - min(dfprob['conv']))/2
+    phi = dfprob.loc[dfprob['conv'] == max(dfprob['conv']), 'phi'].iloc[0]
+    popt = [a, phi, y0]
+    return dfprob, popt
+
+
 def tt_conv_plot(dW, W0, f, dphi):
     xticks, xticklabels = xticks_2p()
     dfmarks = build_marks()
@@ -225,7 +300,7 @@ def params_bulk(dW, W0, dphi):
     params['y0'] = np.nan
     for i in dfmarks.index:
         f = dfmarks.loc[i, 'field']
-        dfprob, popt = prob_and_conv(dfmarks, dW, W0, f, dphi)
+        dfprob, popt = prob_and_conv_dil(dfmarks, dW, W0, f, dphi)
         if popt[1] >= 4/6*np.pi:
             params.loc[i, 'a'] = -popt[0]
         else:
@@ -425,18 +500,29 @@ def tt_conv_plot_down(dW, W0, f, dphi):
 def prob_and_conv_down(dfmarks, dW, W0, f, dphi):
     # pick observation
     obs = dfmarks.loc[f].copy()
+    obs_W = obs.copy()
     for key in ['DIL', 'tb20', 'tt10']:
         phi = phase_filter(W0, -dW, obs[key])
         obs[key] = (np.pi - phi) + np.pi/6
     # build simple probability
     dfprob = pd.DataFrame({'phi': np.arange(np.pi/6, 7*np.pi/6 + dphi, dphi)})
+    dfprob['W'] = W0 + np.cos(dfprob['phi'] - np.pi/6)*dW
     dfprob['p'] = np.nan
     mask = (dfprob['phi'] > obs['tt10'])
     dfprob.loc[mask, 'p'] = 0.5
     mask = (dfprob['phi'] <= obs['tt10']) & (dfprob['phi'] > obs['tb20'])
-    dfprob.loc[mask, 'p'] = 1  # goldilocks
+    dfprob.loc[mask, 'p'] = 0  # goldilocks
     mask = (dfprob['phi'] <= obs['tb20'])
     dfprob.loc[mask, 'p'] = 0
+    # 2nd exchange
+    mask = (dfprob['W'] < obs_W['tt10'])
+    Wdist = np.abs(dfprob.loc[mask, 'W'] - obs_W['tt10'])
+    Wdist[Wdist > dW] = dW
+    pdist = np.arccos(Wdist/dW)
+    pdist[np.isnan(pdist)] = np.pi
+    val = 0.5 - 0.5*pdist/np.pi
+    # print(len(dfprob[mask]), len(val))
+    dfprob.loc[mask, 'p'] = val
     # fold
     dfprob_a = dfprob.copy()
     dfprob_a.drop([0, 180], inplace=True)  # don't repeat endpoints
@@ -684,7 +770,7 @@ def turning_time_figure(field_picks, W0_pick):
 
 # main script
 dW = 43
-W0 = 0
+W0 = -10
 f = 30
 dphi = np.pi/180
 # dfprob_up = tt_conv_plot(dW, W0, f, dphi)
@@ -698,4 +784,13 @@ dphi = np.pi/180
 # print(dfmarks)
 
 # dfprob_up, dfprob_down = tt_conv_plot_both(dW, W0, f, dphi)
-turning_time_figure([0, 15, 30], W0)
+# turning_time_figure([0, 15, 30], W0)
+
+dfmarks = build_marks()
+obs = dfmarks.loc[f]
+dfprob, popt = prob_and_conv_dil(dfmarks, dW, W0, f, dphi)
+ax = dfprob.plot(x='phi', y='W')
+ax.axhline(obs['tt10'])
+ax = dfprob.plot(x='phi', y='p')
+ax.axvline(np.pi/6)
+ax.axvline(7*np.pi/6)

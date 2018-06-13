@@ -497,7 +497,9 @@ def tp_up_W_dil(f, DIL):
     if f > 0 and t_equ > 10*41341400:  # is it possible for tb_dil < 20 ns?
         # bound to avoid NaN
         # max for f=300 mV/cm
-        bound = (DIL + np.finfo(float).eps, W_equ - np.finfo(float).eps)
+        # bound = (DIL + 1e7*np.finfo(float).eps, W_equ - np.finfo(float).eps)
+        # bound = (-2.5*au['GHz'], W_equ - np.finfo(float).eps)
+        bound = (DIL + 1e7*np.finfo(float).eps, 1*au['GHz'])
         msopts = {'xatol': 1e-10}  # 1 MHz
         # bounded to keep from returning NaN
         result = minimize_scalar(tp_up_W_target_dil, method='Bounded',
@@ -547,10 +549,12 @@ def test_dil():
     Wtbud = tb_up_W_dil(f, DIL)
     print("W(tb=20ns, DIL=0) > W(tb=20ns, DIL=-7GHz) : ", Wtbu0 > Wtbud)
     # up plus
-    f = 8*au['mVcm']
+    f = 9.5*au['mVcm']
     DIL = -7*au['GHz']
     # W = -6*au['GHz']
-    print("W(tp_up = 20 ns)", tp_up_W_dil(f, DIL)/au['GHz'], "GHz")
+    print("W(tp_up = 20 ns) = ", tp_up_W_dil(f, DIL)/au['GHz'], "GHz")
+    print("W(tb_up = 20 ns) = ", tb_up_W_dil(f, DIL)/au['GHz'], " GHz")
+    print("W(tt_up = 20 ns) = ", tt_up_W(f)/au['GHz'], " GHz")
     Ws = np.arange(-7, 10, 0.1)*au['GHz']
     tps = np.ones(len(Ws))*np.NaN
     tbs = np.ones(len(Ws))*np.NaN
@@ -562,6 +566,7 @@ def test_dil():
         tps[i] = tpud
         tbs[i] = tbud
         tts[i] = ttu
+    print("peak = ", Ws[np.nanargmax(tps)]/au['GHz'], " GHz")
     plt.plot(Ws/au['GHz'], tps/au['ns'], label="tplus")
     plt.plot(Ws/au['GHz'], tbs/au['ns'], label="tb")
     plt.plot(Ws/au['GHz'], tts/au['ns'], label="tt")
