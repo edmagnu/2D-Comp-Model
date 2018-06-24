@@ -681,7 +681,6 @@ def turning_time_figure(field_picks, W0_pick):
     return data_tot, picked_tot
 
 
-
 # main script
 dW = 43
 W0 = 0

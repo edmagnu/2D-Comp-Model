@@ -65,7 +65,8 @@ def main():
     au = tab.atomic_units()
     # Bulk settings
     W0s = np.arange(-100, 50 + 1, 1)*au['GHz']  # required for runtime
-    Eps = np.array([61, 62, 63, 64, 66, 67, 68, 69, 71, 72, 73, 74, 76, 77, 78, 79])*au['mVcm']
+    Eps = np.array([61, 62, 63, 64, 66, 67, 68, 69, 71, 72, 73, 74, 76, 7, 78,
+                    79])*au['mVcm']
     Emw = 4*1000*au['mVcm']
     w_mw = 2*np.pi*15.932/au['ns']
     t0 = 0*au['ns']
@@ -93,16 +94,26 @@ def main():
 
 def analysis():
     au = tab.atomic_units()
-    fname = os.path.join("wfinals", "wfinals_05''00_u.h5")
+    fstr = "0100"
+    field = float(fstr)/10
+    print(field)
+    fname = os.path.join("wfinals", "wfinals_" + fstr + "_u.h5")
     df = pd.read_hdf(fname)
     df['W0'] = df['W0']/au['GHz']
     df['Wf'] = df['Wf']/au['GHz']
+    survival = pd.DataFrame()
     W0s = df['W0'].unique()
+    survival['W0'] = W0s
     bounds = np.ones(len(W0s))*np.NaN
     for i, W0 in enumerate(W0s):
         mask = (df['W0'] == W0)
         bounds[i] = sum(df.loc[mask, 'Wf'] < 0)/2000
-    plt.plot(W0s, bounds)
+    survival['bound'] = bounds
+    fig, ax = plt.subplots()
+    survival.plot(x='W0', y='bound', ax=ax)
+    ax.set(xlabel="Orbit Energy (GHz)", ylabel="P(Survival)",
+           title="E_P = {0} mV/cm".format(field))
+    ax.legend().remove()
     return df
 
 

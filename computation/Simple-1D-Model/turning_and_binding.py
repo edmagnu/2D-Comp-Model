@@ -570,9 +570,6 @@ def test_dil():
     plt.xlabel("Energy (GHz)")
     plt.ylabel("time (ns)")
     plt.legend()
-    # print("tt_up = ", tt_up(W, f)/au['ns'], " ns")
-    # print("tb_up_dil = ", tb_up_dil(W, f, DIL)/au['ns'], " ns")
-    # print("tp_dil = ", (2*tt_up(W, f) - tb_up_dil(W, f, DIL))/au['ns'], " ns")
     return
 
 
