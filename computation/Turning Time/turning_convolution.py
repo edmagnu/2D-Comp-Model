@@ -84,7 +84,7 @@ def build_marks():
     # import data
     fname = "picked_w.txt"
     picked_tot = pd.read_csv(fname, index_col=0)
-    dfdilb = pd.read_csv("dil_binding.txt", index_col=0)
+    # dfdilb = pd.read_csv("dil_binding.txt", index_col=0)
     # convert to lab units
     picked_tot['W'] = picked_tot['W']/au['GHz']
     picked_tot['field'] = picked_tot['field']/au['mVcm']
@@ -468,7 +468,7 @@ def tt_conv_plot_down(dW, W0, f, dphi):
     dfmarks = build_marks_down()
     dfprob, popt = prob_and_conv_down(dfmarks, dW, W0, f, dphi)
     # plots
-    fig, ax = plt.subplots(nrows=3, figsize=(6,9))
+    fig, ax = plt.subplots(nrows=3, figsize=(6, 9))
     # marks
     dfmarks.plot(x='field', y='DIL', linestyle='-', marker='.', label="DIL",
                  alpha=0.5, ax=ax[0])
@@ -559,7 +559,7 @@ def tt_conv_plot_both(dW, W0, f, dphi):
     # convolution
     dfprob.plot(x='phi', y='conv', ax=ax[1, 0])
     ax[1, 0].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
-                ylabel="Norm. Signal")
+                 ylabel="Norm. Signal")
     dfprob_up = dfprob.copy()
     # ==========
     # Downhill
@@ -573,7 +573,7 @@ def tt_conv_plot_both(dW, W0, f, dphi):
     # convolution
     dfprob.plot(x='phi', y='conv', ax=ax[1, 1])
     ax[1, 1].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
-                ylabel="Norm. Signal")
+                 ylabel="Norm. Signal")
     dfprob_down = dfprob.copy()
     # ==========
     # Both
@@ -587,7 +587,7 @@ def tt_conv_plot_both(dW, W0, f, dphi):
     # convolution
     dfprob.plot(x='phi', y='conv', ax=ax[1, 2])
     ax[1, 2].set(xticks=xticks, xticklabels=xticklabels, xlabel="Phase (rad.)",
-                ylabel="Norm. Signal")
+                 ylabel="Norm. Signal")
     dfprob_down = dfprob.copy()
     # ==========
     # finish
@@ -603,6 +603,7 @@ def tt_conv_plot_both(dW, W0, f, dphi):
     fig.savefig(fname)
     return dfprob_up, dfprob_down
 
+
 # ==========
 # up_and_down_orbits.pdf
 # ==========
@@ -616,7 +617,8 @@ def interp_match(df1, df2, kx, ky):
 def turning_time_figure(field_picks, W0_pick):
     au = atomic_units()
     # import data
-    # dname = os.path.join("..", "2D-Comp-Model", "computation", "Turning Time")
+    # dname = os.path.join("..", "2D-Comp-Model", "computation",
+    #                      "Turning Time")
     # fname = os.path.join(dname, "data_raw.txt")
     data_tot = pd.read_csv("data_raw.txt", index_col=0)
     # fname = os.path.join(dname, "picked_w.txt")
