@@ -300,9 +300,11 @@ def field_ps(fstr):
     surv['W0'] = W0s
     bounds = np.ones(len(W0s))*np.NaN
     # Get bound signal mean from each set of 2000 trials
+    DIL = -7
+    fwhm = 5
     for i, W0 in enumerate(W0s):
         mask = (df['W0'] == W0)
-        bounds[i] = sum(df.loc[mask, 'Wf'] < -7)/2000  # 2000 tests
+        bounds[i] = sum(limit_model(df.loc[mask, 'Wf'], DIL, fwhm))/2000
     surv['p'] = bounds
     return surv
 
@@ -317,7 +319,7 @@ def build_heatmap():
         df.loc[i, 'fstr'] = str(int(df.loc[i, 'f']*10)).zfill(4)
         df.loc[i, 'fname'] = "wfinals" + "_" + df.loc[i, 'fstr'] + "_u.h5"
     for i in df.index:
-        tab.progress("heatmap()", i, len(df.index))
+        tab.progress("build_heatmap()", i, len(df.index))
         surv = field_ps(df.loc[i, 'fstr'])
         surv['f'] = df.loc[i, 'f']
         rec = rec.append(surv, ignore_index=True)
@@ -349,12 +351,70 @@ def heatmap():
     return df, hm
 
 
+def hm_convolution():
+    dfhm = pd.read_csv("heatmap_u.csv", index_col=0)
+    convrec = pd.DataFrame()
+    fitrec = pd.DataFrame()
+    # W0s = df['W0'].unique()
+    fnum = len(dfhm['f'].unique())
+    dW = 43
+    Wlas = -50
+    udn = 1
+    for i, f in enumerate(dfhm['f'].unique()):
+        tab.progress("hm_convolution()", i, fnum)
+        mask = (dfhm['f'] == f)
+        df = dfhm[mask].copy()
+        df['phi'] = phase_filter(Wlas, dW, df['W0'].values, udn)
+        # fold
+        df_a = df.copy()
+        df_a['phi'] = 14/6*np.pi - df_a['phi']  # 7pi/6 -> 13pi/6
+        df = df.append(df_a, ignore_index=True)
+        mask = (df['phi'] > 2*np.pi)
+        df.loc[mask, 'phi'] = df.loc[mask, 'phi'] - 2*np.pi
+        df.sort_values(by='phi', inplace=True)
+        # convolution
+        # regularly spaced values
+        phis = np.arange(0, 2*180 + 1, 1)*np.pi/180
+        mask = (df['phi'] != np.inf) & (df['phi'] != -np.inf)
+        xp = df.loc[mask, 'phi'].values
+        xp = np.append(xp, [xp[0] + 2*np.pi])
+        xp = np.insert(xp, 0, xp[-1] - 2*np.pi)
+        yp = df.loc[mask, 'p'].values
+        yp = np.append(yp, [yp[0]])
+        yp = np.insert(yp, 0, yp[-1])
+        bounds = np.interp(phis, xp, yp)
+        dfp = pd.DataFrame({'phi': phis, 'p': bounds})
+        # convolve
+        amlaser = laser_envelope(dfp)
+        conv = np.convolve(dfp['p'], amlaser['I'], mode='same')
+        dfp['conv'] = conv[range(len(dfp['phi']), 2*len(dfp['phi']))]
+        # params
+        y0 = np.mean(dfp['conv'])
+        a = (max(dfp['conv']) - min(dfp['conv']))/2
+        phi = dfp.loc[dfp['conv'] == max(dfp['conv']), 'phi'].iloc[0]
+        # popt = [a, phi, y0]
+        # record field
+        dfp['f'] = f
+        dfp['a'] = a
+        dfp['y0'] = y0
+        dfp['phi0'] = phi
+        convrec = convrec.append(dfp, ignore_index=True)
+        fitrec = fitrec.append(dfp.loc[0, ['f', 'a', 'y0', 'phi0']])
+    # plot
+    fig, axes = plt.subplots(nrows=3, sharex=True)
+    fitrec.plot(x='f', y='y0', ax=axes[0])
+    fitrec.plot(x='f', y='a', ax=axes[1])
+    fitrec.plot(x='f', y='phi0', ax=axes[2])
+    return convrec, fitrec
+
+
 if __name__ == '__main__':  # run if script is called directly
     multiprocessing.freeze_support()
     # df = field_analysis()
     # df = field_ps("0050")
     # df, rec = build_heatmap()
-    df, hm = heatmap()
+    # df, hm = heatmap()
+    dfconv, dffit = hm_convolution()
     # phase_filter_test()
     # limit_model_test()
     # result = main()
